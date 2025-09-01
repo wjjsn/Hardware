@@ -34,7 +34,7 @@ class OLED
 		{
 			for (int i = 1; i < Width + 1; ++i)
 			{
-				dataBuf1_[Page + j][X + i] = Image[Width * j + i];
+				dataBuf1_[Page + j][X + i] = Image[Width * j + (i - 1)];
 			}
 		}
 	}
