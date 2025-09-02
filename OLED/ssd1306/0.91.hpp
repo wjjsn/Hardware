@@ -153,8 +153,8 @@ public:
 		write_command(0x40);
 		write_command(0x8d); /*set charge pump enable*/
 		write_command(0x14);
-
-		for (int i = 0; i < 8; ++i)
+		write_command(0xAF); // 开启显示
+		for (int i = 0; i < 4; ++i)
 		{
 			dataBuf1_[i][0] = dataBuf2_[i][0] = 0x40;
 		}
@@ -163,7 +163,7 @@ public:
 	}
 	void chear(void)
 	{
-		for (int i = 0; i < 8; ++i)
+		for (int i = 0; i < 4; ++i)
 		{
 			for (int j = 1; j < 129; ++j)
 			{
@@ -173,7 +173,7 @@ public:
 	}
 	void update(void)
 	{
-		for (int i = 0; i < 8; ++i)
+		for (int i = 0; i < 4; ++i)
 		{
 			if (std::memcmp(&dataBuf1_[i][0], &dataBuf2_[i][0], 129) != 0)
 			{
@@ -185,7 +185,7 @@ public:
 	}
 	void update_force(void)
 	{
-		for (int i = 0; i < 8; ++i)
+		for (int i = 0; i < 4; ++i)
 		{
 			set_cursor(i, 0);
 			i2c_device_7bits::transmit(&dataBuf1_[i][0], 129, DEFAULT_TIMEOUT);
