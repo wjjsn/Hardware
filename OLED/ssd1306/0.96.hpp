@@ -9,8 +9,8 @@
 template <typename i2c_device_7bits>
 class OLED
 {
-	uint8_t dataBuf1_[8][129] = {0};
-	uint8_t dataBuf2_[8][129] = {0};
+	uint8_t dataBuf1_[8][129] = {};
+	uint8_t dataBuf2_[8][129] = {};
 	static void write_command(std::uint8_t command)
 	{
 		std::uint8_t data[2] = {0x00, command};
