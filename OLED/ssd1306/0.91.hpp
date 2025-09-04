@@ -196,9 +196,8 @@ public:
 	{
 		std::va_list args;
 		va_start(args, format);
-		int needed_length = std::vsnprintf(NULL, 0, format, args);
-		char buffer[needed_length + 1];
-		std::vsnprintf(buffer, needed_length + 1, format, args);
+		char buffer[25];
+		std::vsnprintf(buffer, 25, format, args);
 		va_end(args);
 		show_string(Page, X, buffer);
 	}
