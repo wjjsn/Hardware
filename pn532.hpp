@@ -76,43 +76,46 @@ public:
 	}
 	static void Rx_Handle()
 	{
-		std::uint8_t read_buf[20];
-		RB::peek((void *)read_buf, 6);
-		if (
-			read_buf[0] == 0x00 &&
-			read_buf[1] == 0x00 &&
-			read_buf[2] == 0xFF &&
-			read_buf[3] == 0x00 &&
-			read_buf[4] == 0xFF &&
-			read_buf[6] == 0x00)
+		if (RB::get_used() >= 6 + 9)
 		{
-			RB::drop(6);
-			RB::read((void *)read_buf, 6);
-			if (read_buf[0] == 0x00 &&
+			std::uint8_t read_buf[20];
+			RB::peek((void *)read_buf, 6);
+			if (
+				read_buf[0] == 0x00 &&
 				read_buf[1] == 0x00 &&
 				read_buf[2] == 0xFF &&
-				read_buf[3] + read_buf[4] == 0x100 &&
-				read_buf[5] == 0xD5)
+				read_buf[3] == 0x00 &&
+				read_buf[4] == 0xFF &&
+				read_buf[6] == 0x00)
 			{
-				std::uint8_t length = read_buf[3] - 1;
-				RB::read((void *)read_buf, length);
-				std::uint8_t command		= read_buf[0];
-				std::uint8_t *data			= read_buf + 1;
-				std::uint8_t data_check_sum = 0xD5 + command;
-				for (std::uint8_t i = 0; i < length - 1; ++i)
+				RB::drop(6);
+				RB::read((void *)read_buf, 6);
+				if (read_buf[0] == 0x00 &&
+					read_buf[1] == 0x00 &&
+					read_buf[2] == 0xFF &&
+					read_buf[3] + read_buf[4] == 0x100 &&
+					read_buf[5] == 0xD5)
 				{
-					data_check_sum += *data++;
-				}
-				RB::read((void *)read_buf, 2);
-				if (static_cast<std::uint8_t>(data_check_sum + read_buf[0]) == 0x00 &&
-					read_buf[1] == 0x00)
-				{
-					HAL::send_ACK();
-					printf("ok!,command:0x%X,length:%d\n", command, length);
-				}
-				else
-				{
-					printf("error\n");
+					std::uint8_t length = read_buf[3] - 1;
+					RB::read((void *)read_buf, length);
+					std::uint8_t command		= read_buf[0];
+					std::uint8_t *data			= read_buf + 1;
+					std::uint8_t data_check_sum = 0xD5 + command;
+					for (std::uint8_t i = 0; i < length - 1; ++i)
+					{
+						data_check_sum += *data++;
+					}
+					RB::read((void *)read_buf, 2);
+					if (static_cast<std::uint8_t>(data_check_sum + read_buf[0]) == 0x00 &&
+						read_buf[1] == 0x00)
+					{
+						HAL::send_ACK();
+						printf("ok!,command:0x%X,length:%d\n", command, length);
+					}
+					else
+					{
+						printf("error\n");
+					}
 				}
 			}
 		}
