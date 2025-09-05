@@ -105,16 +105,16 @@ public:
 					{
 						data_check_sum += *data++;
 					}
-					RB::read((void *)read_buf, 2);
-					if (static_cast<std::uint8_t>(data_check_sum + read_buf[0]) == 0x00 &&
-						read_buf[1] == 0x00)
+					RB::read((void *)read_buf, 1);
+					if (static_cast<std::uint8_t>(data_check_sum + read_buf[0]) == 0x00)
 					{
+						RB::drop(1);
 						HAL::send_ACK();
 						printf("ok!,command:0x%X,length:%d\n", command, length);
 					}
 					else
 					{
-						printf("error\n");
+						printf("error,data_check_sum:0x%XDCS:0x%X\n", data_check_sum, read_buf[0]);
 					}
 				}
 			}
