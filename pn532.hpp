@@ -3,7 +3,6 @@
 #include <array>
 #include <algorithm>
 #include <cstdio>
-#include <inttypes.h>
 
 template <typename uart>
 class PN532_HAL_UART
@@ -54,11 +53,23 @@ public:
 		constexpr std::array<std::uint8_t, 6> write_buf{0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00};
 		uart::transmit(write_buf.data(), write_buf.size(), TIMEOUT);
 	}
+	static void transmit(const std::uint8_t *data, std::uint8_t length, std::uint32_t timeout)
+	{
+		uart::transmit(data, length, timeout);
+	}
 };
 template <typename HAL, typename RB>
 class PN532
 {
+	constexpr static std::uint32_t TIMEOUT = 1000;
+	constexpr static std::uint8_t wakeup_frame[]{
+		0x55, 0x55, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x03, 0xFD, 0xD4, 0x14, 0x01, 0x17, 0x00};
+
 public:
+	static void wake_up()
+	{
+		HAL::transmit(wakeup_frame, sizeof(wakeup_frame), TIMEOUT);
+	}
 	static void get_firmware_version()
 	{
 		HAL::write(0x02, nullptr, 0);
@@ -97,7 +108,7 @@ public:
 					read_buf[1] == 0x00)
 				{
 					HAL::send_ACK();
-					printf("ok!,command:0x%X\n", command);
+					printf("ok!,command:0x%X,length:%d\n", command, length);
 				}
 				else
 				{
