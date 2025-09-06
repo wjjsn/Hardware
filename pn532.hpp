@@ -60,7 +60,7 @@ public:
 	}
 };
 template <typename HAL, typename RB>
-class PN532
+class PN532_
 {
 	constexpr static std::uint8_t BUFFER_LENGTH = 32;
 	constexpr static std::uint32_t TIMEOUT		= 1000;
@@ -145,7 +145,7 @@ class PN532
 	}
 
 public:
-	enum baud_rate : std::uint8_t
+	enum class card_type : std::uint8_t
 	{
 		MIFARE	  = 0x00,
 		DESfire	  = 0x00,
@@ -166,10 +166,33 @@ public:
 	}
 
 	/*建议一次只读一张卡，2张同时暂不支持(软件可以支持，但是硬件触发的条件比较苛刻，写了也是白写)*/
-	void scan_card(baud_rate card_type, std::uint8_t card_number = 1)
+	void scan_card(card_type card_type, std::uint8_t card_number = 1)
 	{
-		std::array<std::uint8_t, 2> data{card_number, card_type};
-		HAL::write(IN_LIST_PASSIVETARGET, data.data(), data.size());
+		if (card_type == card_type::MIFARE)
+		{
+			std::array<std::uint8_t, 2> data{card_number, static_cast<std::uint8_t>(card_type::MIFARE)};
+			HAL::write(IN_LIST_PASSIVETARGET, data.data(), data.size());
+		}
+		else if (card_type == card_type::ISO14443A)
+		{
+			std::array<std::uint8_t, 2> data{1, static_cast<std::uint8_t>(card_type::ISO14443A)};
+			HAL::write(IN_LIST_PASSIVETARGET, data.data(), data.size());
+		}
+		else if (card_type == card_type::ISO14443B)
+		{
+			std::array<std::uint8_t, 3> data{1, static_cast<std::uint8_t>(card_type::ISO14443B), 00};
+			HAL::write(IN_LIST_PASSIVETARGET, data.data(), data.size());
+		}
+		else if (card_type == card_type::FeliCa) /*手上没有这种卡，暂时不支持*/
+		{
+		}
+		else if (card_type == card_type::Jewel) /*手上没有这种卡，暂时不支持*/
+		{
+		}
+		else if (card_type == card_type::DESfire) /*手上没有这种卡，暂时不支持*/
+		{
+		}
+
 		last_send_command_ = IN_LIST_PASSIVETARGET;
 	}
 	void Rx_Handle()
