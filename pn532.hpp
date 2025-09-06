@@ -79,6 +79,25 @@ class PN532
 
 	std::uint8_t last_send_command_;
 
+	void log_card_info(int card_number, std::uint16_t ATQA, std::uint8_t SAk, std::uint8_t ID_length, std::uint8_t *ID)
+	{
+		printf("Found %d card(s)\n", card_number);
+		/*(SENS_RES)
+		这个是 ISO/IEC 14443-3 Type A 里对卡片响应 REQA / WUPA 指令的名字。
+		它是 2 个字节，用来表明卡的类型、是否支持 UID 完整输出等信息*/
+		printf("ATQA: 0x%04X\n", ATQA);
+		/*(SEL_RES)
+		在 ISO/IEC 14443-3 Type A 标准里，对 抗冲突过程成功后卡返回的一字节 的名字。
+		里面的 bit 表明了卡是否还有级联 UID、卡的类型（MIFARE Classic、Ultralight、Desfire 等）。*/
+		printf("SAK: 0x%02X\n", SAk);
+		printf("ID length: %d\n", ID_length);
+		printf("ID: ");
+		while (ID_length--)
+		{
+			printf("0x%02X ", *ID++);
+		}
+		printf("\n");
+	}
 	void command_Handld(std::uint8_t command, std::uint8_t *data, std::uint8_t length)
 	{
 		if (command - 1 == last_send_command_) /*如果收到的命令是（上次发送的命令-1）*/
@@ -104,13 +123,10 @@ class PN532
 					switch (length)
 					{
 						case 0x0A:
-							printf("Found %d card(s)\n", data[0]);
-							printf("SENS_RES(s): 0x%02X 0x%02X\n", data[2], data[3]);
-							printf("SEL_RES(s): 0x%02X\n", data[4]);
-							printf("NFCID length: %d\n", data[5]);
-							printf("NFCID: 0x%02X 0x%02X 0x%02X 0x%02X\n", data[6], data[7], data[8], data[9]);
+							log_card_info(data[0], std::uint16_t(data[2] << 8 | data[3]), data[4], data[5], data + 6);
 							break;
-						case 0x14:
+						case 0x1C:
+							log_card_info(data[0], std::uint16_t(data[2] << 8 | data[3]), data[4], data[5], data + 6);
 							break;
 						default:
 							break;
@@ -131,7 +147,12 @@ class PN532
 public:
 	enum baud_rate : std::uint8_t
 	{
-		MIFARE_ISO14443A = 0x00,
+		MIFARE	  = 0x00,
+		DESfire	  = 0x00,
+		FeliCa	  = 0x01,
+		Jewel	  = 0x04,
+		ISO14443A = 0x00,
+		ISO14443B = 0x03,
 	};
 	void wake_up()
 	{
@@ -143,7 +164,9 @@ public:
 		HAL::write(GET_FIRMWARE_VERSION, nullptr, 0);
 		last_send_command_ = GET_FIRMWARE_VERSION;
 	}
-	void scan_card(baud_rate card_type, std::uint8_t card_number)
+
+	/*建议一次只读一张卡，2张同时暂不支持*/
+	void scan_card(baud_rate card_type, std::uint8_t card_number = 1)
 	{
 		std::array<std::uint8_t, 2> data{card_number, card_type};
 		HAL::write(IN_LIST_PASSIVETARGET, data.data(), data.size());
