@@ -79,9 +79,10 @@ class PN532_
 
 	std::uint8_t last_send_command_;
 
-	void log_card_info(int card_number, std::uint16_t ATQA, std::uint8_t SAk, std::uint8_t ID_length, std::uint8_t *ID)
+	void log_card_info_A(int card_number, std::uint16_t ATQA, std::uint8_t SAk, std::uint8_t ID_length, std::uint8_t *ID)
 	{
-		printf("Found %d card(s)\n", card_number);
+		(void)card_number;
+		printf("Found ISO/IEC 14443-A card\n");
 		/*(SENS_RES)
 		这个是 ISO/IEC 14443-3 Type A 里对卡片响应 REQA / WUPA 指令的名字。
 		它是 2 个字节，用来表明卡的类型、是否支持 UID 完整输出等信息*/
@@ -95,6 +96,20 @@ class PN532_
 		while (ID_length--)
 		{
 			printf("0x%02X ", *ID++);
+		}
+		printf("\n");
+	}
+	void log_card_info_B(std::uint8_t *ATQB, std::uint8_t ATTRIB_length, std::uint8_t *ATTRIB)
+	{
+		printf("Found ISO/IEC 14443-B card\n");
+		printf("PUPI: 0x%02X 0x%02X 0x%02X 0x%02X\n", ATQB[0], ATQB[1], ATQB[2], ATQB[3]);
+		printf("Application Data: 0x%02X 0x%02X\n", ATQB[4], ATQB[5]);
+		printf("​​Protocol Info: 0x%02X 0x%02X\n", ATQB[6], ATQB[7]);
+		printf("ATTRIB length: %d\n", ATTRIB_length);
+		printf("ATTRIB: ");
+		while (ATTRIB_length--)
+		{
+			printf("0x%02X ", *ATTRIB++);
 		}
 		printf("\n");
 	}
@@ -122,11 +137,15 @@ class PN532_
 				case IN_LIST_PASSIVETARGET:
 					switch (length)
 					{
-						case 0x0A:
-							log_card_info(data[0], std::uint16_t(data[2] << 8 | data[3]), data[4], data[5], data + 6);
+						case 0x0A: /*14443-3 Type A*/
+							log_card_info_A(data[0], std::uint16_t(data[2] << 8 | data[3]), data[4], data[5], data + 6);
 							break;
-						case 0x1C:
-							log_card_info(data[0], std::uint16_t(data[2] << 8 | data[3]), data[4], data[5], data + 6);
+						case 0x1C: /*14443-4 Type A*/
+							log_card_info_A(data[0], std::uint16_t(data[2] << 8 | data[3]), data[4], data[5], data + 6);
+							break;
+						case 0x10: /*14443-3 Type B*/
+							data += 2;
+							log_card_info_B(data, data[12], data + 13);
 							break;
 						default:
 							break;
@@ -210,7 +229,7 @@ public:
 				read_buf[5] == 0x00) /*ACK帧*/
 			{
 				RB::drop(6);
-				printf("ACK OK\n");
+				// printf("ACK OK\n");
 			}
 		}
 		if (RB::get_used() >= 9)
