@@ -165,7 +165,7 @@ public:
 		last_send_command_ = GET_FIRMWARE_VERSION;
 	}
 
-	/*建议一次只读一张卡，2张同时暂不支持*/
+	/*建议一次只读一张卡，2张同时暂不支持(软件可以支持，但是硬件触发的条件比较苛刻，写了也是白写)*/
 	void scan_card(baud_rate card_type, std::uint8_t card_number = 1)
 	{
 		std::array<std::uint8_t, 2> data{card_number, card_type};
@@ -193,24 +193,17 @@ public:
 		if (RB::get_used() >= 9)
 		{
 			std::uint8_t read_buf[BUFFER_LENGTH];
-			// RB::peek((void *)read_buf, 6);
-			// if (
-			// 	read_buf[0] == 0x00 &&
-			// 	read_buf[1] == 0x00 &&
-			// 	read_buf[2] == 0xFF &&
-			// 	read_buf[3] == 0x00 &&
-			// 	read_buf[4] == 0xFF &&
-			// 	read_buf[5] == 0x00) /*ACK帧*/
+			RB::peek((void *)read_buf, 6);
+			if (read_buf[0] == preamble &&
+				read_buf[1] == start_code[0] &&
+				read_buf[2] == start_code[1] &&
+				read_buf[3] + read_buf[4] == 0x100 &&
+				read_buf[5] == frame_identifier)
 			{
-
-				RB::read((void *)read_buf, 6);
-				if (read_buf[0] == preamble &&
-					read_buf[1] == start_code[0] &&
-					read_buf[2] == start_code[1] &&
-					read_buf[3] + read_buf[4] == 0x100 &&
-					read_buf[5] == frame_identifier)
+				std::uint8_t length = read_buf[3] - 1;
+				if (RB::get_used() > length + 1u /*DCS*/ + 1u /*POSTAMBLE*/ + 1u)
 				{
-					std::uint8_t length = read_buf[3] - 1;
+					RB::drop(6);
 					RB::read((void *)read_buf, length); /*读出数据段*/
 					std::uint8_t command		= read_buf[0];
 					std::uint8_t *data			= read_buf + 1;
