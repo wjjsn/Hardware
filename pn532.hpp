@@ -99,6 +99,15 @@ class PN532_
 		}
 		printf("\n");
 	}
+	void log_ATS(std::uint8_t *ATS, std::uint8_t length)
+	{
+		printf("ATS");
+		while (length--)
+		{
+			printf(":%02X", *ATS++);
+		}
+		printf("\n");
+	}
 	void log_card_info_B(std::uint8_t *ATQB, std::uint8_t ATTRIB_length, std::uint8_t *ATTRIB)
 	{
 		printf("Found ISO/IEC 14443-B card\n");
@@ -140,8 +149,15 @@ class PN532_
 						case 0x0A: /*14443-3 Type A*/
 							log_card_info_A(data[0], std::uint16_t(data[2] << 8 | data[3]), data[4], data[5], data + 6);
 							break;
+						case 0x1A: /*14443-4 Type A*/
+							log_card_info_A(data[0], std::uint16_t(data[2] << 8 | data[3]), data[4], data[5], data + 6);
+							printf("This is a T=CL card\n");
+							log_ATS(data + 15, 11);
+							break;
 						case 0x1C: /*14443-4 Type A*/
 							log_card_info_A(data[0], std::uint16_t(data[2] << 8 | data[3]), data[4], data[5], data + 6);
+							printf("This is a T=CL card\n");
+
 							break;
 						case 0x10: /*14443-3 Type B*/
 							data += 2;
