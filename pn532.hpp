@@ -1,4 +1,5 @@
 #pragma once
+#include "bits_operation.hpp"
 #include <cstdint>
 #include <array>
 #include <algorithm>
@@ -133,7 +134,10 @@ class PN532_
 					{
 						printf("Found chip PN5%02X\n", data[0]);
 						printf("Firmware version: %d.%d\n", data[1], data[2]);
-						printf("Support: %02X\n", data[3]);
+						printf("Support: %s%s%s\n",
+							   BIT::READ(data[3], 0) ? "ISO/IEC 14443-A," : "",
+							   BIT::READ(data[3], 1) ? "ISO/IEC 14443-B," : "",
+							   BIT::READ(data[3], 2) ? "ISO 18092" : "");
 					}
 					else
 					{
