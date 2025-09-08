@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <array>
 #include <algorithm>
-#include <cstdio>
+#include "elog.hpp"
 
 template <typename uart>
 class PN532_HAL_UART
@@ -2033,45 +2033,45 @@ class PN532_
 	void log_card_info_A(int card_number, std::uint16_t ATQA, std::uint8_t SAk, std::uint8_t ID_length, std::uint8_t *ID)
 	{
 		(void)card_number;
-		printf("Found ISO/IEC 14443-A card\n");
+		LOG::INFO("Found ISO/IEC 14443-A card\n");
 		/*(SENS_RES)
 		这个是 ISO/IEC 14443-3 Type A 里对卡片响应 REQA / WUPA 指令的名字。
 		它是 2 个字节，用来表明卡的类型、是否支持 UID 完整输出等信息*/
-		printf("ATQA: 0x%04X\n", ATQA);
+		LOG::INFO("ATQA: 0x%04X\n", ATQA);
 		/*(SEL_RES)
 		在 ISO/IEC 14443-3 Type A 标准里，对 抗冲突过程成功后卡返回的一字节 的名字。
 		里面的 bit 表明了卡是否还有级联 UID、卡的类型（MIFARE Classic、Ultralight、Desfire 等）。*/
-		printf("SAK: 0x%02X\n", SAk);
-		printf("ID length: %d\n", ID_length);
-		printf("ID: ");
+		LOG::INFO("SAK: 0x%02X\n", SAk);
+		LOG::INFO("ID length: %d\n", ID_length);
+		LOG::INFO("ID: ");
 		while (ID_length--)
 		{
-			printf("0x%02X ", *ID++);
+			LOG::INFO_NOHEAD("0x%02X ", *ID++);
 		}
-		printf("\n");
+		LOG::INFO_NOHEAD("\n");
 	}
 	void log_ATS(std::uint8_t *ATS, std::uint8_t length)
 	{
-		printf("ATS");
+		LOG::INFO("ATS");
 		while (length--)
 		{
-			printf(":%02X", *ATS++);
+			LOG::INFO_NOHEAD(":%02X", *ATS++);
 		}
-		printf("\n");
+		LOG::INFO_NOHEAD("\n");
 	}
 	void log_card_info_B(std::uint8_t *ATQB, std::uint8_t ATTRIB_length, std::uint8_t *ATTRIB)
 	{
-		printf("Found ISO/IEC 14443-B card\n");
-		printf("PUPI: 0x%02X 0x%02X 0x%02X 0x%02X\n", ATQB[0], ATQB[1], ATQB[2], ATQB[3]);
-		printf("Application Data: 0x%02X 0x%02X\n", ATQB[4], ATQB[5]);
-		printf("​​Protocol Info: 0x%02X 0x%02X\n", ATQB[6], ATQB[7]);
-		printf("ATTRIB length: %d\n", ATTRIB_length);
-		printf("ATTRIB: ");
+		LOG::INFO("Found ISO/IEC 14443-B card\n");
+		LOG::INFO("PUPI: 0x%02X 0x%02X 0x%02X 0x%02X\n", ATQB[0], ATQB[1], ATQB[2], ATQB[3]);
+		LOG::INFO("Application Data: 0x%02X 0x%02X\n", ATQB[4], ATQB[5]);
+		LOG::INFO("​​Protocol Info: 0x%02X 0x%02X\n", ATQB[6], ATQB[7]);
+		LOG::INFO("ATTRIB length: %d\n", ATTRIB_length);
+		LOG::INFO("ATTRIB: ");
 		while (ATTRIB_length--)
 		{
-			printf("0x%02X ", *ATTRIB++);
+			LOG::INFO_NOHEAD("0x%02X ", *ATTRIB++);
 		}
-		printf("\n");
+		LOG::INFO_NOHEAD("\n");
 	}
 	void command_Handld(std::uint8_t command, std::uint8_t *data, std::uint8_t length)
 	{
@@ -2082,20 +2082,20 @@ class PN532_
 				case GET_FIRMWARE_VERSION:
 					if (length == 4)
 					{
-						printf("Found chip PN5%02X\n", data[0]);
-						printf("Firmware version: %d.%d\n", data[1], data[2]);
-						printf("Support: %s%s%s\n",
-							   BIT::READ(data[3], 0) ? "ISO/IEC 14443-A," : "",
-							   BIT::READ(data[3], 1) ? "ISO/IEC 14443-B," : "",
-							   BIT::READ(data[3], 2) ? "ISO 18092" : "");
+						LOG::INFO("Found chip PN5%02X\n", data[0]);
+						LOG::INFO("Firmware version: %d.%d\n", data[1], data[2]);
+						LOG::INFO("Support: %s%s%s\n",
+								  BIT::READ(data[3], 0) ? "ISO/IEC 14443-A," : "",
+								  BIT::READ(data[3], 1) ? "ISO/IEC 14443-B," : "",
+								  BIT::READ(data[3], 2) ? "ISO 18092" : "");
 					}
 					else
 					{
-						printf("error at length,command:0x%02X,length:%d\n", last_send_command_, length);
+						LOG::ERROR("error at length,command:0x%02X,length:%d\n", last_send_command_, length);
 					}
 					break;
 				case SAM_CONFIGURATION:
-					printf("config SAM OK\n");
+					LOG::INFO("config SAM OK\n");
 					break;
 				case IN_LIST_PASSIVETARGET:
 					switch (length)
@@ -2105,12 +2105,12 @@ class PN532_
 							break;
 						case 0x1A: /*14443-4 Type A*/
 							log_card_info_A(data[0], std::uint16_t(data[2] << 8 | data[3]), data[4], data[5], data + 6);
-							printf("This is a T=CL card\n");
+							LOG::INFO("This is a T=CL card\n");
 							log_ATS(data + 15, 11);
 							break;
 						case 0x1C: /*14443-4 Type A*/
 							log_card_info_A(data[0], std::uint16_t(data[2] << 8 | data[3]), data[4], data[5], data + 6);
-							printf("This is a T=CL card\n");
+							LOG::INFO("This is a T=CL card\n");
 
 							break;
 						case 0x10: /*14443-3 Type B*/
@@ -2122,14 +2122,13 @@ class PN532_
 					}
 					break;
 				default:
-					printf("unknown command:0x%X,length:%d\n", last_send_command_, length);
-
+					LOG::INFO("unknown command:0x%X,length:%d\n", last_send_command_, length);
 					break;
 			}
 		}
 		else
 		{
-			printf("error,command:0x%X,last_send_command:0x%X\n", command, last_send_command_);
+			LOG::ERROR("error,command:0x%X,last_send_command:0x%X\n", command, last_send_command_);
 		}
 	}
 
@@ -2213,7 +2212,7 @@ public:
 				read_buf[5] == frame_identifier)
 			{
 				std::uint8_t length = read_buf[3] - 1;
-				if (RB::get_used() > length + 1u /*DCS*/ + 1u /*POSTAMBLE*/ + 1u)
+				if (RB::get_used() > length + 1u /*DCS*/ + 1u /*POSTAMBLE*/ + 1u /*这个是冗余，防止过多的校验和错误*/)
 				{
 					RB::drop(6);
 					RB::read((void *)read_buf, length); /*读出数据段*/
@@ -2234,7 +2233,7 @@ public:
 					else
 					{
 						HAL::send_ACK();
-						printf("error,data_check_sum:0x%X,DCS:0x%X,command:0x%X,length:%d\n", data_check_sum, read_buf[0], command, length);
+						LOG::ERROR("data_check_sum:0x%X,DCS:0x%X,command:0x%X,length:%d\n", data_check_sum, read_buf[0], command, length);
 						RB::reset_read();
 					}
 				}
