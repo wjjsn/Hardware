@@ -8,7 +8,6 @@
 template <typename uart>
 class PN532_HAL_UART
 {
-	constexpr static std::uint8_t BUFFER_LENGTH = 32;
 	constexpr static std::uint32_t TIMEOUT		= 1000;
 	constexpr static std::uint8_t preamble		= 0x00;
 	constexpr static std::uint8_t start_code[2]{0x00, 0xFF};
@@ -24,7 +23,7 @@ public:
 		0xD4:MCU->PN532
 		0xD5:PN532->MCU
 		*/
-		std::array<std::uint8_t, BUFFER_LENGTH> frame{
+		std::array<std::uint8_t, 7> frame{
 			preamble,
 			start_code[0],
 			start_code[1],
@@ -33,22 +32,16 @@ public:
 			frame_identifier,
 			command,
 		};
-		auto it = frame.begin() + 7;
-		if (data != nullptr && length > 0)
-		{
-			std::copy_n(data, length, it);
-			it += length;
-		}
+		uart::transmit(frame.data(), frame.size(), TIMEOUT);
 		std::uint8_t data_check_sum = frame_identifier + command;
-		for (std::uint8_t i = 0; i < length; ++i)
+		for (std::uint8_t i = 0; (i < length) && data != nullptr; ++i)
 		{
+			uart::transmit(data, 1, TIMEOUT);
 			data_check_sum += *data++;
 		}
-		*it++					 = 0x100 - data_check_sum;
-		*it++					 = postamble;
-		std::uint16_t frame_size = std::distance(frame.begin(), it);
-
-		uart::transmit(frame.data(), frame_size, TIMEOUT);
+		data_check_sum = 0x100 - data_check_sum;
+		uart::transmit(&data_check_sum, 1, TIMEOUT);
+		uart::transmit(&postamble, 1, TIMEOUT);
 	}
 	static void send_ACK()
 	{
@@ -2198,7 +2191,7 @@ public:
 				read_buf[5] == 0x00) /*ACK帧*/
 			{
 				RB::drop(6);
-				// printf("ACK OK\n");
+				LOG::DBG("ACK ok\n");
 			}
 		}
 		if (RB::get_used() >= 9)
