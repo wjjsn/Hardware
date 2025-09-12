@@ -2,7 +2,6 @@
 #include "bits_operation.hpp"
 #include <cstdint>
 #include <array>
-#include <algorithm>
 #include "elog.hpp"
 
 template <typename uart>
@@ -2016,6 +2015,7 @@ class PN532_
 		constexpr std::array<std::uint8_t, 6> write_buf{0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00};
 		HAL::transmit(write_buf.data(), write_buf.size(), TIMEOUT);
 	}
+
 	void log_card_info_A(int card_number, std::uint16_t ATQA, std::uint8_t SAk, std::uint8_t ID_length, std::uint8_t *ID)
 	{
 		(void)card_number;
@@ -2032,18 +2032,23 @@ class PN532_
 		LOG::INFO("ID: ");
 		while (ID_length--)
 		{
-			LOG::INFO_NOHEAD("0x%02X ", *ID++);
+			LOG::NORMAL(LogLevel::INFO, "0x%02X ", *ID++);
 		}
-		LOG::INFO_NOHEAD("\n");
+		LOG::NORMAL(LogLevel::INFO, "\n");
 	}
-	void log_ATS(std::uint8_t *ATS, std::uint8_t length)
+	void log_ATS(std::uint8_t *ATS)
 	{
+		/*TL + T0 + (TA1) + (TB1) + (TC1) + (T1~TK) + (Historical Bytes)*/
+		std::uint8_t length = ATS[0];
+
+		/*中间4字节复杂且找不到参考资料，不解析*/
+
 		LOG::INFO("ATS");
-		while (length--)
+		for (std::uint8_t i = 5; i < length; ++i)
 		{
-			LOG::INFO_NOHEAD(":%02X", *ATS++);
+			LOG::NORMAL(LogLevel::INFO, ":%02X", ATS[i]);
 		}
-		LOG::INFO_NOHEAD("\n");
+		LOG::NORMAL(LogLevel::INFO, "\n");
 	}
 	void log_card_info_B(std::uint8_t *ATQB, std::uint8_t ATTRIB_length, std::uint8_t *ATTRIB)
 	{
@@ -2055,9 +2060,9 @@ class PN532_
 		LOG::INFO("ATTRIB: ");
 		while (ATTRIB_length--)
 		{
-			LOG::INFO_NOHEAD("0x%02X ", *ATTRIB++);
+			LOG::NORMAL(LogLevel::INFO, "0x%02X ", *ATTRIB++);
 		}
-		LOG::INFO_NOHEAD("\n");
+		LOG::NORMAL(LogLevel::INFO, "\n");
 	}
 	void command_Handld(std::uint8_t command, std::uint8_t *data, std::uint8_t length)
 	{
@@ -2084,29 +2089,26 @@ class PN532_
 					LOG::INFO("config SAM OK\n");
 					break;
 				case IN_LIST_PASSIVETARGET:
-					switch (length)
-					{
-						case 0x0A: /*14443-3 Type A*/
-							log_card_info_A(data[0], std::uint16_t(data[2] << 8 | data[3]), data[4], data[5], data + 6);
-							break;
-						case 0x1A: /*14443-4 Type A*/
-							log_card_info_A(data[0], std::uint16_t(data[2] << 8 | data[3]), data[4], data[5], data + 6);
-							LOG::INFO("This is a T=CL card\n");
-							log_ATS(data + 15, 11);
-							break;
-						case 0x1C: /*14443-4 Type A*/
-							log_card_info_A(data[0], std::uint16_t(data[2] << 8 | data[3]), data[4], data[5], data + 6);
-							LOG::INFO("This is a T=CL card\n");
-
-							break;
-						case 0x10: /*14443-3 Type B*/
-							data += 2;
-							log_card_info_B(data, data[12], data + 13);
-							break;
-						default:
-							break;
+				{
+					/*
+					data[0]:找到的卡片数量
+					data[1]:卡片编号
+					*/
+					if (data[2] == 0x50)
+					{ /*Type B*/
+						/*手上没有更多的卡可以测试，这个函数可能不能覆盖所有情况*/
+						log_card_info_B(data + 2, data[2 + 12], data + 2 + 13);
+					}
+					else
+					{ /*Type A*/
+						log_card_info_A(data[0], (data[2] << 8) | data[3], data[4], data[5], data + 6);
+						if (length - 6 - data[5] > 0)
+						{
+							log_ATS(data + 6 + data[5]);
+						}
 					}
 					break;
+				}
 				default:
 					LOG::INFO("unknown command:0x%X,length:%d\n", last_send_command_, length);
 					break;
