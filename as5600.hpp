@@ -87,20 +87,20 @@ class AS5600
 		switch (mode)
 		{
 			case NOM:
-				CLR_BIT(config_register_, 0);
-				CLR_BIT(config_register_, 1);
+				BIT::CLR(config_register_, 0);
+				BIT::CLR(config_register_, 1);
 				break;
 			case LPM1:
-				SET_BIT(config_register_, 0);
-				CLR_BIT(config_register_, 1);
+				BIT::SET(config_register_, 0);
+				BIT::CLR(config_register_, 1);
 				break;
 			case LPM2:
-				CLR_BIT(config_register_, 0);
-				SET_BIT(config_register_, 1);
+				BIT::CLR(config_register_, 0);
+				BIT::SET(config_register_, 1);
 				break;
 			case LPM3:
-				SET_BIT(config_register_, 0);
-				SET_BIT(config_register_, 1);
+				BIT::SET(config_register_, 0);
+				BIT::SET(config_register_, 1);
 				break;
 			default:;
 		}
@@ -110,20 +110,20 @@ class AS5600
 		switch (mode)
 		{
 			case DISBALE:
-				CLR_BIT(config_register_, 2);
-				CLR_BIT(config_register_, 3);
+				BIT::CLR(config_register_, 2);
+				BIT::CLR(config_register_, 3);
 				break;
 			case LSB1:
-				SET_BIT(config_register_, 2);
-				CLR_BIT(config_register_, 3);
+				BIT::SET(config_register_, 2);
+				BIT::CLR(config_register_, 3);
 				break;
 			case LSB2:
-				CLR_BIT(config_register_, 2);
-				SET_BIT(config_register_, 3);
+				BIT::CLR(config_register_, 2);
+				BIT::SET(config_register_, 3);
 				break;
 			case LSB3:
-				SET_BIT(config_register_, 2);
-				SET_BIT(config_register_, 3);
+				BIT::SET(config_register_, 2);
+				BIT::SET(config_register_, 3);
 				break;
 			default:;
 		}
@@ -133,16 +133,16 @@ class AS5600
 		switch (mode)
 		{
 			case ANALOG1:
-				CLR_BIT(config_register_, 4);
-				CLR_BIT(config_register_, 5);
+				BIT::CLR(config_register_, 4);
+				BIT::CLR(config_register_, 5);
 				break;
 			case ANALOG2:
-				SET_BIT(config_register_, 4);
-				CLR_BIT(config_register_, 5);
+				BIT::SET(config_register_, 4);
+				BIT::CLR(config_register_, 5);
 				break;
 			case DIGITAL_PWM:
-				CLR_BIT(config_register_, 4);
-				SET_BIT(config_register_, 5);
+				BIT::CLR(config_register_, 4);
+				BIT::SET(config_register_, 5);
 				break;
 			default:;
 		}
@@ -152,20 +152,20 @@ class AS5600
 		switch (frequency)
 		{
 			case _115Hz:
-				CLR_BIT(config_register_, 6);
-				CLR_BIT(config_register_, 7);
+				BIT::CLR(config_register_, 6);
+				BIT::CLR(config_register_, 7);
 				break;
 			case _230Hz:
-				SET_BIT(config_register_, 6);
-				CLR_BIT(config_register_, 7);
+				BIT::SET(config_register_, 6);
+				BIT::CLR(config_register_, 7);
 				break;
 			case _460Hz:
-				CLR_BIT(config_register_, 6);
-				SET_BIT(config_register_, 7);
+				BIT::CLR(config_register_, 6);
+				BIT::SET(config_register_, 7);
 				break;
 			case _920Hz:
-				SET_BIT(config_register_, 6);
-				SET_BIT(config_register_, 7);
+				BIT::SET(config_register_, 6);
+				BIT::SET(config_register_, 7);
 				break;
 			default:;
 		}
@@ -175,20 +175,20 @@ class AS5600
 		switch (mode)
 		{
 			case _16x:
-				CLR_BIT(config_register_, 8);
-				CLR_BIT(config_register_, 9);
+				BIT::CLR(config_register_, 8);
+				BIT::CLR(config_register_, 9);
 				break;
 			case _8x:
-				SET_BIT(config_register_, 8);
-				CLR_BIT(config_register_, 9);
+				BIT::SET(config_register_, 8);
+				BIT::CLR(config_register_, 9);
 				break;
 			case _4x:
-				CLR_BIT(config_register_, 8);
-				SET_BIT(config_register_, 9);
+				BIT::CLR(config_register_, 8);
+				BIT::SET(config_register_, 9);
 				break;
 			case _2x:
-				SET_BIT(config_register_, 8);
-				SET_BIT(config_register_, 9);
+				BIT::SET(config_register_, 8);
+				BIT::SET(config_register_, 9);
 				break;
 			default:;
 		}
@@ -198,51 +198,51 @@ class AS5600
 		switch (thresholds)
 		{
 			case ONLY_SLOW:
-				CLR_BIT(config_register_, 10);
-				CLR_BIT(config_register_, 11);
-				CLR_BIT(config_register_, 12);
+				BIT::CLR(config_register_, 10);
+				BIT::CLR(config_register_, 11);
+				BIT::CLR(config_register_, 12);
 				break;
 			case LSB6:
-				SET_BIT(config_register_, 10);
-				CLR_BIT(config_register_, 11);
-				CLR_BIT(config_register_, 12);
+				BIT::SET(config_register_, 10);
+				BIT::CLR(config_register_, 11);
+				BIT::CLR(config_register_, 12);
 				break;
 			case LSB7:
-				CLR_BIT(config_register_, 10);
-				SET_BIT(config_register_, 11);
-				CLR_BIT(config_register_, 12);
+				BIT::CLR(config_register_, 10);
+				BIT::SET(config_register_, 11);
+				BIT::CLR(config_register_, 12);
 				break;
 			case LSB9:
-				SET_BIT(config_register_, 10);
-				SET_BIT(config_register_, 11);
-				CLR_BIT(config_register_, 12);
+				BIT::SET(config_register_, 10);
+				BIT::SET(config_register_, 11);
+				BIT::CLR(config_register_, 12);
 				break;
 			case LSB18:
-				CLR_BIT(config_register_, 10);
-				CLR_BIT(config_register_, 11);
-				SET_BIT(config_register_, 12);
+				BIT::CLR(config_register_, 10);
+				BIT::CLR(config_register_, 11);
+				BIT::SET(config_register_, 12);
 				break;
 			case LSB21:
-				CLR_BIT(config_register_, 10);
-				SET_BIT(config_register_, 11);
-				CLR_BIT(config_register_, 12);
+				BIT::CLR(config_register_, 10);
+				BIT::SET(config_register_, 11);
+				BIT::CLR(config_register_, 12);
 				break;
 			case LSB24:
-				SET_BIT(config_register_, 10);
-				CLR_BIT(config_register_, 11);
-				CLR_BIT(config_register_, 12);
+				BIT::SET(config_register_, 10);
+				BIT::CLR(config_register_, 11);
+				BIT::CLR(config_register_, 12);
 				break;
 			case LSB10:
-				SET_BIT(config_register_, 10);
-				SET_BIT(config_register_, 11);
-				SET_BIT(config_register_, 12);
+				BIT::SET(config_register_, 10);
+				BIT::SET(config_register_, 11);
+				BIT::SET(config_register_, 12);
 				break;
 			default:;
 		}
 	}
 	void set_watchdog(bool enable) // 13
 	{
-		enable ? SET_BIT(config_register_, 13) : CLR_BIT(config_register_, 13);
+		enable ? BIT::SET(config_register_, 13) : BIT::CLR(config_register_, 13);
 	}
 
 public:
@@ -273,7 +273,7 @@ public:
 	{
 		std::uint8_t read_buf;
 		i2c_device_7bits::mem_read(STATUS, i2c_device_7bits::MEMADD_SIZE_8BIT, &read_buf, 1, DEFAULT_TIMEOUT);
-		return (!READ_BIT(read_buf, 3) /*磁铁太强*/) && (!READ_BIT(read_buf, 4) /*磁铁太弱*/) && READ_BIT(read_buf, 5) /*检测到磁铁*/;
+		return (!BIT::READ(read_buf, 3) /*磁铁太强*/) && (!BIT::READ(read_buf, 4) /*磁铁太弱*/) && BIT::READ(read_buf, 5) /*检测到磁铁*/;
 	}
 	static void set_range(std::uint16_t start_angle = 0, std::uint16_t stop_angle = 0xFFF, std::uint16_t max_angle = 0xFFF)
 	{
