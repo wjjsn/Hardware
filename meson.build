@@ -1,3 +1,7 @@
+project('Hardware', 'c', 'cpp',
+    version: '1.0.0',
+)
+
 hardware_src = files('OLED/font.cpp')
 
 hardware_dep = declare_dependency(
