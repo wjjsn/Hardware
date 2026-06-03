@@ -22,6 +22,7 @@ private:
 	inline static uint32_t clickCountRealTime = 0;
 	inline static uint32_t clickCountLastTime = 0;
 	inline static uint32_t holdCount		  = 0;
+	inline static bool holding			  = false;
 
 public:
 	// 1. 初始化接口
@@ -38,6 +39,7 @@ public:
 		if (holdCount >= 60)
 		{
 			holdCount = 60;
+			holding = true;
 			if (HoldTask)
 			{
 				HoldTask();
@@ -57,8 +59,6 @@ public:
 			clickCountRealTime++;
 		}
 
-		detect_key_hold();
-
 		// 持续处于触发状态，累加长按计数
 		if (stateRealTime == TrigState && stateLastTime == TrigState)
 		{
@@ -75,6 +75,9 @@ public:
 	// 4. 处理点击事件（在主循环中调用）
 	static void cope_click_data()
 	{
+		// 长按判定 (从 detect_key_click 移到这里, 回调在主循环上下文执行)
+		detect_key_hold();
+
 		// 状态还在改变，或者没有点击，直接返回（消抖或等待连续点击结束）
 		if (clickCountRealTime != clickCountLastTime || clickCountRealTime == 0)
 		{
@@ -93,7 +96,11 @@ public:
 			// O(1) 数组直达，安全检查边界后直接调用
 			if (clickIndex < MAX_CLICKS)
 			{
-				if (tasks[clickIndex])
+				if (clickIndex == 0 && holding)
+				{
+					holding = false;
+				}
+				else if (tasks[clickIndex])
 				{
 					tasks[clickIndex]();
 				}
