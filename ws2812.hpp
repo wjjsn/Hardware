@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 #include "bits_operation.hpp"
 template <typename PWM, const int led_num>
 class WS2812
@@ -11,24 +11,24 @@ class WS2812
 		code1 = 60,
 		reset = 0
 	};
-	std::uint16_t rgb_buf_[led_num * 24 + 1] = {0}; // todo:最后一位为reset
-	std::uint16_t step_						 = 0;
+	uint16_t rgb_buf_[led_num * 24 + 1] = {0}; // todo:最后一位为reset
+	uint16_t step_						 = 0;
 
 public:
-	void set_one(std::uint16_t pos, std::uint32_t color)
+	void set_one(uint16_t pos, uint32_t color)
 	{
-		std::uint8_t
+		uint8_t
 			R = color >> 16,
 			G = color >> 8,
 			B = color >> 0;
 		for (int i = 0; i < 8; ++i)
 		{
-			rgb_buf_[pos * 24 + i + 0]	= READ_BIT(G, i) ? code1 : code0;
-			rgb_buf_[pos * 24 + i + 8]	= READ_BIT(R, i) ? code1 : code0;
-			rgb_buf_[pos * 24 + i + 16] = READ_BIT(B, i) ? code1 : code0;
+			rgb_buf_[pos * 24 + i + 0]	= BIT::READ(G, i) ? code1 : code0;
+			rgb_buf_[pos * 24 + i + 8]	= BIT::READ(R, i) ? code1 : code0;
+			rgb_buf_[pos * 24 + i + 16] = BIT::READ(B, i) ? code1 : code0;
 		}
 	}
-	void set_multiple(std::uint16_t start, std::uint16_t stop, std::uint32_t color)
+	void set_multiple(uint16_t start, uint16_t stop, uint32_t color)
 	{
 		for (int i = start; i < stop; ++i)
 		{

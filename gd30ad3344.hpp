@@ -1,12 +1,12 @@
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 #include "bits_operation.hpp"
 
 template <typename spi_device>
 class GD30AD3344
 {
-	std::uint16_t config_register;
+	uint16_t config_register;
 
 public:
 	enum MUX_options_t
@@ -68,14 +68,14 @@ public:
 
 	void start_single_conversion()
 	{
-		SET_BIT(config_register, 15);
+		BIT::SET(config_register, 15);
 		write_config_register();
 	}
 
-	std::int16_t read_conversion_data(void)
+	int16_t read_conversion_data(void)
 	{
-		std::int16_t data;
-		spi_device::receive((std::uint8_t *)&data, 2);
+		int16_t data;
+		spi_device::receive((uint8_t *)&data, 2);
 		return data;
 	}
 
@@ -84,44 +84,44 @@ public:
 		switch (mux_option) // 14:12
 		{
 			case INP_IN0_INN_IN1: // 000
-				CLR_BIT(config_register, 12);
-				CLR_BIT(config_register, 13);
-				CLR_BIT(config_register, 14);
+				BIT::CLR(config_register, 12);
+				BIT::CLR(config_register, 13);
+				BIT::CLR(config_register, 14);
 				break;
 			case INP_IN0_INN_IN3: // 001
-				SET_BIT(config_register, 12);
-				CLR_BIT(config_register, 13);
-				CLR_BIT(config_register, 14);
+				BIT::SET(config_register, 12);
+				BIT::CLR(config_register, 13);
+				BIT::CLR(config_register, 14);
 				break;
 			case INP_IN1_INN_IN3: // 010
-				CLR_BIT(config_register, 12);
-				SET_BIT(config_register, 13);
-				CLR_BIT(config_register, 14);
+				BIT::CLR(config_register, 12);
+				BIT::SET(config_register, 13);
+				BIT::CLR(config_register, 14);
 				break;
 			case INP_IN2_INN_IN3: // 011
-				SET_BIT(config_register, 12);
-				SET_BIT(config_register, 13);
-				CLR_BIT(config_register, 14);
+				BIT::SET(config_register, 12);
+				BIT::SET(config_register, 13);
+				BIT::CLR(config_register, 14);
 				break;
 			case INP_IN0_INN_GND: // 100
-				CLR_BIT(config_register, 12);
-				CLR_BIT(config_register, 13);
-				SET_BIT(config_register, 14);
+				BIT::CLR(config_register, 12);
+				BIT::CLR(config_register, 13);
+				BIT::SET(config_register, 14);
 				break;
 			case INP_IN1_INN_GND: // 101
-				SET_BIT(config_register, 12);
-				CLR_BIT(config_register, 13);
-				SET_BIT(config_register, 14);
+				BIT::SET(config_register, 12);
+				BIT::CLR(config_register, 13);
+				BIT::SET(config_register, 14);
 				break;
 			case INP_IN2_INN_GND: // 110
-				SET_BIT(config_register, 12);
-				SET_BIT(config_register, 13);
-				CLR_BIT(config_register, 14);
+				BIT::SET(config_register, 12);
+				BIT::SET(config_register, 13);
+				BIT::CLR(config_register, 14);
 				break;
 			case INP_IN3_INN_GND: // 111
-				SET_BIT(config_register, 12);
-				SET_BIT(config_register, 13);
-				SET_BIT(config_register, 14);
+				BIT::SET(config_register, 12);
+				BIT::SET(config_register, 13);
+				BIT::SET(config_register, 14);
 				break;
 			default:
 				break;
@@ -133,39 +133,39 @@ public:
 		switch (pga_option) // 11:9
 		{
 			case _6144V1: // 000
-				CLR_BIT(config_register, 9);
-				CLR_BIT(config_register, 10);
-				CLR_BIT(config_register, 11);
+				BIT::CLR(config_register, 9);
+				BIT::CLR(config_register, 10);
+				BIT::CLR(config_register, 11);
 				break;
 			case _4096V1: // 001
-				SET_BIT(config_register, 9);
-				CLR_BIT(config_register, 10);
-				CLR_BIT(config_register, 11);
+				BIT::SET(config_register, 9);
+				BIT::CLR(config_register, 10);
+				BIT::CLR(config_register, 11);
 				break;
 			case _2048: // 010
-				CLR_BIT(config_register, 9);
-				SET_BIT(config_register, 10);
-				CLR_BIT(config_register, 11);
+				BIT::CLR(config_register, 9);
+				BIT::SET(config_register, 10);
+				BIT::CLR(config_register, 11);
 				break;
 			case _1024: // 011
-				SET_BIT(config_register, 9);
-				SET_BIT(config_register, 10);
-				CLR_BIT(config_register, 11);
+				BIT::SET(config_register, 9);
+				BIT::SET(config_register, 10);
+				BIT::CLR(config_register, 11);
 				break;
 			case _0512: // 100
-				CLR_BIT(config_register, 9);
-				CLR_BIT(config_register, 10);
-				SET_BIT(config_register, 11);
+				BIT::CLR(config_register, 9);
+				BIT::CLR(config_register, 10);
+				BIT::SET(config_register, 11);
 				break;
 			case _0256: // 101
-				SET_BIT(config_register, 9);
-				CLR_BIT(config_register, 10);
-				SET_BIT(config_register, 11);
+				BIT::SET(config_register, 9);
+				BIT::CLR(config_register, 10);
+				BIT::SET(config_register, 11);
 				break;
 			case _0064: // 110
-				CLR_BIT(config_register, 9);
-				SET_BIT(config_register, 10);
-				SET_BIT(config_register, 11);
+				BIT::CLR(config_register, 9);
+				BIT::SET(config_register, 10);
+				BIT::SET(config_register, 11);
 				break;
 			default:
 				break;
@@ -177,10 +177,10 @@ public:
 		switch (work_mode_option) // 8
 		{
 			case CONTINUE_MODE:
-				CLR_BIT(config_register, 8);
+				BIT::CLR(config_register, 8);
 				break;
 			case SINGLE_MODE:
-				SET_BIT(config_register, 8);
+				BIT::SET(config_register, 8);
 				break;
 			default:
 				break;
@@ -192,44 +192,44 @@ public:
 		switch (data_rate_option) // 7:5
 		{
 			case SPS6_25: // 000
-				CLR_BIT(config_register, 5);
-				CLR_BIT(config_register, 6);
-				CLR_BIT(config_register, 7);
+				BIT::CLR(config_register, 5);
+				BIT::CLR(config_register, 6);
+				BIT::CLR(config_register, 7);
 				break;
 			case SPS12_5: // 001
-				SET_BIT(config_register, 5);
-				CLR_BIT(config_register, 6);
-				CLR_BIT(config_register, 7);
+				BIT::SET(config_register, 5);
+				BIT::CLR(config_register, 6);
+				BIT::CLR(config_register, 7);
 				break;
 			case SPS25: // 010
-				CLR_BIT(config_register, 5);
-				SET_BIT(config_register, 6);
-				CLR_BIT(config_register, 7);
+				BIT::CLR(config_register, 5);
+				BIT::SET(config_register, 6);
+				BIT::CLR(config_register, 7);
 				break;
 			case SPS50: // 011
-				SET_BIT(config_register, 5);
-				SET_BIT(config_register, 6);
-				CLR_BIT(config_register, 7);
+				BIT::SET(config_register, 5);
+				BIT::SET(config_register, 6);
+				BIT::CLR(config_register, 7);
 				break;
 			case SPS100: // 100
-				CLR_BIT(config_register, 5);
-				CLR_BIT(config_register, 6);
-				SET_BIT(config_register, 7);
+				BIT::CLR(config_register, 5);
+				BIT::CLR(config_register, 6);
+				BIT::SET(config_register, 7);
 				break;
 			case SPS250: // 101
-				SET_BIT(config_register, 5);
-				CLR_BIT(config_register, 6);
-				SET_BIT(config_register, 7);
+				BIT::SET(config_register, 5);
+				BIT::CLR(config_register, 6);
+				BIT::SET(config_register, 7);
 				break;
 			case SPS500: // 110
-				CLR_BIT(config_register, 5);
-				SET_BIT(config_register, 6);
-				SET_BIT(config_register, 7);
+				BIT::CLR(config_register, 5);
+				BIT::SET(config_register, 6);
+				BIT::SET(config_register, 7);
 				break;
 			case SPS1000: // 111
-				SET_BIT(config_register, 5);
-				SET_BIT(config_register, 6);
-				SET_BIT(config_register, 7);
+				BIT::SET(config_register, 5);
+				BIT::SET(config_register, 6);
+				BIT::SET(config_register, 7);
 				break;
 			default:
 				break;
@@ -241,10 +241,10 @@ public:
 		switch (MISO_PULLUP_option)
 		{
 			case PULLUP_ENABLE:
-				SET_BIT(config_register, 3);
+				BIT::SET(config_register, 3);
 				break;
 			case PULLUP_DISABLE:
-				CLR_BIT(config_register, 3);
+				BIT::CLR(config_register, 3);
 				break;
 			default:
 				break;
@@ -262,6 +262,6 @@ public:
 	{
 		this->config_register |= 1 << 1;
 		this->config_register &= ~(1 << 2);
-		spi_device::transmit((std::uint8_t *)&config_register, 2);
+		spi_device::transmit((uint8_t *)&config_register, 2);
 	}
 };

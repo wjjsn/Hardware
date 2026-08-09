@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 #include "bits_operation.hpp"
 
 /**
@@ -23,10 +23,10 @@
 template <typename I2C_Device>
 class GD30AD3340
 {
-    static constexpr std::uint16_t DEFAULT_TIMEOUT = 1000;
+    static constexpr uint16_t DEFAULT_TIMEOUT = 1000;
 
     // 寄存器地址 (8-bit pointer)
-    enum Reg : std::uint8_t
+    enum Reg : uint8_t
     {
         REG_CONVERSION = 0x00,  // 转换结果寄存器 (只读)
         REG_CONFIG     = 0x01,  // 配置寄存器
@@ -35,7 +35,7 @@ class GD30AD3340
     };
 
     // 配置寄存器的位域枚举
-    enum ConfigBit : std::uint8_t
+    enum ConfigBit : uint8_t
     {
         OS_BIT     = 15,  // 单次转换触发位 (写1启动, 自动清0)
         MUX_SHIFT  = 12,  // 输入多路选择器
@@ -48,13 +48,13 @@ class GD30AD3340
         COMP_QUE_SHIFT = 0, // 比较器队列 (11=禁用)
     };
 
-    std::uint16_t config_reg_ = 0x4483; // 默认配置值
+    uint16_t config_reg_ = 0x4483; // 默认配置值
 
 public:
     // ======================== 枚举定义 ========================
 
     /// 输入多路选择器
-    enum MUX : std::uint8_t
+    enum MUX : uint8_t
     {
         MUX_AIN0_AIN1 = 0b000,  // 差分: AIN0(+)  AIN1(-)
         MUX_AIN0_AIN3 = 0b001,  // 差分: AIN0(+)  AIN3(-)
@@ -67,7 +67,7 @@ public:
     };
 
     /// 可编程增益 (PGA), 对应满量程电压
-    enum PGA : std::uint8_t
+    enum PGA : uint8_t
     {
         PGA_6144 = 0b000,  // ±6.144V
         PGA_4096 = 0b001,  // ±4.096V
@@ -79,14 +79,14 @@ public:
     };
 
     /// 工作模式
-    enum Mode : std::uint8_t
+    enum Mode : uint8_t
     {
         MODE_CONTINUOUS = 0,  // 连续转换模式
         MODE_SINGLE     = 1,  // 单次转换/掉电模式
     };
 
     /// 数据速率
-    enum DataRate : std::uint8_t
+    enum DataRate : uint8_t
     {
         DR_6_25   = 0b000,  //  6.25 SPS
         DR_12_5   = 0b001,  // 12.5  SPS
@@ -99,7 +99,7 @@ public:
     };
 
     /// 比较器队列 (转换次数后触发)
-    enum CompQue : std::uint8_t
+    enum CompQue : uint8_t
     {
         COMP_QUE_1    = 0b00,  // 1次转换后触发
         COMP_QUE_2    = 0b01,  // 2次转换后触发
@@ -117,7 +117,7 @@ public:
         BIT::CLR(config_reg_, 13);
         BIT::CLR(config_reg_, 14);
         // 设置新值
-        config_reg_ |= (static_cast<std::uint16_t>(mux) << MUX_SHIFT);
+        config_reg_ |= (static_cast<uint16_t>(mux) << MUX_SHIFT);
     }
 
     /** @brief 设置 PGA 增益 */
@@ -128,7 +128,7 @@ public:
         BIT::CLR(config_reg_, 10);
         BIT::CLR(config_reg_, 11);
         // 设置新值
-        config_reg_ |= (static_cast<std::uint16_t>(pga) << PGA_SHIFT);
+        config_reg_ |= (static_cast<uint16_t>(pga) << PGA_SHIFT);
     }
 
     /** @brief 设置工作模式 */
@@ -148,7 +148,7 @@ public:
         BIT::CLR(config_reg_, 6);
         BIT::CLR(config_reg_, 7);
         // 设置新值
-        config_reg_ |= (static_cast<std::uint16_t>(dr) << DR_SHIFT);
+        config_reg_ |= (static_cast<uint16_t>(dr) << DR_SHIFT);
     }
 
     /** @brief 设置比较器队列 (触发次数) */
@@ -158,7 +158,7 @@ public:
         BIT::CLR(config_reg_, 0);
         BIT::CLR(config_reg_, 1);
         // 设置新值
-        config_reg_ |= static_cast<std::uint16_t>(que);
+        config_reg_ |= static_cast<uint16_t>(que);
     }
 
     /// @brief 比较器模式 (高电平有效/窗口比较器等)
@@ -200,19 +200,19 @@ public:
     /** @brief 将当前 config_reg_ 写入芯片配置寄存器 */
     void write_config()
     {
-        std::uint8_t buf[2] = {
-            static_cast<std::uint8_t>(config_reg_ >> 8),   // 高字节
-            static_cast<std::uint8_t>(config_reg_ & 0xFF)  // 低字节
+        uint8_t buf[2] = {
+            static_cast<uint8_t>(config_reg_ >> 8),   // 高字节
+            static_cast<uint8_t>(config_reg_ & 0xFF)  // 低字节
         };
         I2C_Device::mem_write(REG_CONFIG, buf, 2, DEFAULT_TIMEOUT);
     }
 
     /** @brief 读取配置寄存器 */
-    std::uint16_t read_config()
+    uint16_t read_config()
     {
-        std::uint8_t buf[2] = {0, 0};
+        uint8_t buf[2] = {0, 0};
         I2C_Device::mem_read(REG_CONFIG, buf, 2, DEFAULT_TIMEOUT);
-        config_reg_ = (static_cast<std::uint16_t>(buf[0]) << 8) | buf[1];
+        config_reg_ = (static_cast<uint16_t>(buf[0]) << 8) | buf[1];
         return config_reg_;
     }
 
@@ -223,12 +223,12 @@ public:
      * @note   连续模式下直接读取最新值；单次模式下每次读取前需触发
      * @retval 16位有符号原始值 (读取失败返回 0)
      */
-    std::int16_t read_raw()
+    int16_t read_raw()
     {
-        std::uint8_t buf[2] = {0, 0};
+        uint8_t buf[2] = {0, 0};
         I2C_Device::mem_read(REG_CONVERSION, buf, 2, DEFAULT_TIMEOUT);
-        std::uint16_t raw = (static_cast<std::uint16_t>(buf[0]) << 8) | buf[1];
-        return static_cast<std::int16_t>(raw);
+        uint16_t raw = (static_cast<uint16_t>(buf[0]) << 8) | buf[1];
+        return static_cast<int16_t>(raw);
     }
 
     /**
@@ -236,13 +236,13 @@ public:
      * @note   设置 OS=1 启动转换, 等待转换完成后读取
      * @retval 16位有符号原始值
      */
-    std::int16_t read_single()
+    int16_t read_single()
     {
         // 设置 OS 位为 1, 启动单次转换
         BIT::SET(config_reg_, OS_BIT);
-        std::uint8_t buf[2] = {
-            static_cast<std::uint8_t>(config_reg_ >> 8),
-            static_cast<std::uint8_t>(config_reg_ & 0xFF)
+        uint8_t buf[2] = {
+            static_cast<uint8_t>(config_reg_ >> 8),
+            static_cast<uint8_t>(config_reg_ & 0xFF)
         };
         I2C_Device::mem_write(REG_CONFIG, buf, 2, DEFAULT_TIMEOUT);
 
@@ -252,7 +252,7 @@ public:
         uint32_t timeout = CONV_TIMEOUT;
         do {
             I2C_Device::mem_read(REG_CONFIG, buf, 2, DEFAULT_TIMEOUT);
-            config_reg_ = (static_cast<std::uint16_t>(buf[0]) << 8) | buf[1];
+            config_reg_ = (static_cast<uint16_t>(buf[0]) << 8) | buf[1];
             if (--timeout == 0) break;
         } while (BIT::READ(config_reg_, OS_BIT));
 
@@ -272,7 +272,7 @@ public:
      */
     float read_voltage(float vref = 2.048f)
     {
-        std::int16_t raw = read_raw();
+        int16_t raw = read_raw();
         if (raw < 0) raw = 0;  // 单端输入负值视为0
         return (static_cast<float>(raw) / 32768.0f) * vref;
     }

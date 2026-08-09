@@ -1,4 +1,5 @@
-#include <cstdint>
+#include <stdint.h>
+#include <cstddef>
 
 using CallbackFunc = void (*)();
 

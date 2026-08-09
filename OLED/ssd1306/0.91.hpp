@@ -11,24 +11,24 @@ class OLED
 {
 	uint8_t dataBuf1_[4][129] = {};
 	uint8_t dataBuf2_[4][129] = {};
-	static void write_command(std::uint8_t command)
+	static void write_command(uint8_t command)
 	{
-		std::uint8_t data[2] = {0x00, command};
+		uint8_t data[2] = {0x00, command};
 		i2c_device_7bits::transmit(data, 2, DEFAULT_TIMEOUT);
 	}
-	static void write_data(std::uint8_t data)
+	static void write_data(uint8_t data)
 	{
-		std::uint8_t buffer[2] = {0x40, data};
+		uint8_t buffer[2] = {0x40, data};
 		i2c_device_7bits::transmit(buffer, 2, DEFAULT_TIMEOUT);
 	}
-	void set_cursor(std::uint8_t Page, std::uint8_t X)
+	void set_cursor(uint8_t Page, uint8_t X)
 	{
 		/*通过指令设置页地址和列地址*/
 		write_command(0xB0 | Page);				 // 设置页位置
 		write_command(0x10 | ((X & 0xF0) >> 4)); // 设置X位置高4位
 		write_command(0x00 | (X & 0x0F));		 // 设置X位置低4位
 	}
-	void show_image(std::uint8_t Page, std::uint8_t X, std::uint8_t Width, std::uint8_t Height, const std::uint8_t *Image)
+	void show_image(uint8_t Page, uint8_t X, uint8_t Width, uint8_t Height, const uint8_t *Image)
 	{
 		for (int j = 0; j < Height; ++j)
 		{
@@ -38,12 +38,12 @@ class OLED
 			}
 		}
 	}
-	void show_char(std::uint8_t Page, std::uint8_t X, char a)
+	void show_char(uint8_t Page, uint8_t X, char a)
 	{
 		set_cursor(Page, X);
 		show_image(Page, X, 8, 2, EN8_16[a - ' ']);
 	}
-	void show_string(std::uint8_t Page, std::uint8_t X, char *String)
+	void show_string(uint8_t Page, uint8_t X, char *String)
 	{
 		// for (int i = 0; String[i] != '\0'; ++i)
 		// {
@@ -192,7 +192,7 @@ public:
 			std::memcpy(&dataBuf2_[i][0], &dataBuf1_[i][0], 129);
 		}
 	}
-	void printf(std::uint8_t Page, std::uint8_t X, const char *format, ...)
+	void printf(uint8_t Page, uint8_t X, const char *format, ...)
 	{
 		std::va_list args;
 		va_start(args, format);

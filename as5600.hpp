@@ -1,13 +1,13 @@
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 #include "bits_operation.hpp"
 /*从机地址：0b0110110*/
 template <typename i2c_device_7bits>
 class AS5600
 {
-	static const std::uint16_t DEFAULT_TIMEOUT = 1000;
-	enum reg : std::uint8_t
+	static const uint16_t DEFAULT_TIMEOUT = 1000;
+	enum reg : uint8_t
 	{
 		ZMCO   = 0X00, /*展示ZPOS、MPOS被永久写入的次数*/
 		ZPOS_H = 0x02,
@@ -81,7 +81,7 @@ class AS5600
 		LSB10
 	};
 	/*不提供对BURN、ZMCO寄存器的操作*/
-	std::uint16_t config_register_;
+	uint16_t config_register_;
 	void set_power_mode(power_mode mode) // 1:0
 	{
 		switch (mode)
@@ -246,48 +246,48 @@ class AS5600
 	}
 
 public:
-	static std::uint16_t
+	static uint16_t
 	read_CORDIC_magnitude_value()
 	{
-		std::uint8_t read_buf[2];
+		uint8_t read_buf[2];
 		i2c_device_7bits::mem_read(MAGNITUDE_L, i2c_device_7bits::MEMADD_SIZE_8BIT, read_buf, 2, DEFAULT_TIMEOUT);
 		return (read_buf[1] << 8) | read_buf[0];
 	}
-	static std::uint8_t read_AGC()
+	static uint8_t read_AGC()
 	{
-		std::uint8_t read_buf;
+		uint8_t read_buf;
 		i2c_device_7bits::mem_read(AGC, i2c_device_7bits::MEMADD_SIZE_8BIT, &read_buf, 1, DEFAULT_TIMEOUT);
 		return read_buf;
 	}
-	static std::uint16_t read_angle_raw()
+	static uint16_t read_angle_raw()
 	{
-		std::uint8_t read_buf[2];
+		uint8_t read_buf[2];
 		i2c_device_7bits::mem_read(RAW_ANGLE_L, i2c_device_7bits::MEMADD_SIZE_8BIT, read_buf, 2, DEFAULT_TIMEOUT);
 	}
-	static std::uint16_t read_angle()
+	static uint16_t read_angle()
 	{
-		std::uint8_t read_buf[2];
+		uint8_t read_buf[2];
 		i2c_device_7bits::mem_read(ANGLE_L, i2c_device_7bits::MEMADD_SIZE_8BIT, read_buf, 2, DEFAULT_TIMEOUT);
 	}
 	static bool check_status()
 	{
-		std::uint8_t read_buf;
+		uint8_t read_buf;
 		i2c_device_7bits::mem_read(STATUS, i2c_device_7bits::MEMADD_SIZE_8BIT, &read_buf, 1, DEFAULT_TIMEOUT);
 		return (!BIT::READ(read_buf, 3) /*磁铁太强*/) && (!BIT::READ(read_buf, 4) /*磁铁太弱*/) && BIT::READ(read_buf, 5) /*检测到磁铁*/;
 	}
-	static void set_range(std::uint16_t start_angle = 0, std::uint16_t stop_angle = 0xFFF, std::uint16_t max_angle = 0xFFF)
+	static void set_range(uint16_t start_angle = 0, uint16_t stop_angle = 0xFFF, uint16_t max_angle = 0xFFF)
 	{
 		if (start_angle > 0xFFF || stop_angle > 0xFFF || max_angle > 0xFFF)
 		{
 			return;
 		}
-		std::uint8_t write_buf[2] = {static_cast<std::uint8_t>(start_angle), static_cast<std::uint8_t>(start_angle >> 8)};
+		uint8_t write_buf[2] = {static_cast<uint8_t>(start_angle), static_cast<uint8_t>(start_angle >> 8)};
 		i2c_device_7bits::mem_write(ZPOS_L, i2c_device_7bits::MEMADD_SIZE_8BIT, write_buf, 2, DEFAULT_TIMEOUT);
-		write_buf[0] = static_cast<std::uint8_t>(stop_angle);
-		write_buf[1] = static_cast<std::uint8_t>(stop_angle >> 8);
+		write_buf[0] = static_cast<uint8_t>(stop_angle);
+		write_buf[1] = static_cast<uint8_t>(stop_angle >> 8);
 		i2c_device_7bits::mem_write(MPOS_L, i2c_device_7bits::MEMADD_SIZE_8BIT, write_buf, 2, DEFAULT_TIMEOUT);
-		write_buf[0] = static_cast<std::uint8_t>(max_angle);
-		write_buf[1] = static_cast<std::uint8_t>(max_angle >> 8);
+		write_buf[0] = static_cast<uint8_t>(max_angle);
+		write_buf[1] = static_cast<uint8_t>(max_angle >> 8);
 		i2c_device_7bits::mem_write(MANG_L, i2c_device_7bits::MEMADD_SIZE_8BIT, write_buf, 2, DEFAULT_TIMEOUT);
 	}
 	void conf(power_mode mode = NOM, Hysteresis hyst = DISBALE, output_mode out_mode = ANALOG1, PWM_frequency pwm_freq = _115Hz, slow_filter slow_f = _16x, fast_filter_threshold fast_f = ONLY_SLOW, bool watchdog = false)
@@ -299,7 +299,7 @@ public:
 		set_slow_filter(slow_f);
 		set_fast_filter_threshold(fast_f);
 		set_watchdog(watchdog);
-		std::uint8_t write_buf[2] = {static_cast<std::uint8_t>(config_register_), static_cast<std::uint8_t>(config_register_ >> 8)};
+		uint8_t write_buf[2] = {static_cast<uint8_t>(config_register_), static_cast<uint8_t>(config_register_ >> 8)};
 		i2c_device_7bits::mem_write(CONF_L, i2c_device_7bits::MEMADD_SIZE_8BIT, write_buf, 2, DEFAULT_TIMEOUT);
 	}
 };

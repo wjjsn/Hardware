@@ -1,13 +1,13 @@
 #pragma once
 #include "bits_operation.hpp"
-#include <cstdint>
+#include <stdint.h>
 #include <array>
 #include "elog.hpp"
 
 template <typename uart>
 struct PN532_HAL_UART
 {
-	static void transmit(const std::uint8_t *data, std::uint8_t length, std::uint32_t timeout)
+	static void transmit(const uint8_t *data, uint8_t length, uint32_t timeout)
 	{
 		uart::transmit(data, length, timeout);
 	}
@@ -16,7 +16,7 @@ struct PN532_HAL_UART
 template <typename HAL, typename RB>
 class PN532_
 {
-	constexpr static std::array<std::array<std::uint8_t, 6>, 1942> Mifare_keys{
+	constexpr static std::array<std::array<uint8_t, 6>, 1942> Mifare_keys{
 
 		{
 			{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
@@ -1966,42 +1966,42 @@ class PN532_
 
 	};
 
-	constexpr static std::uint8_t BUFFER_LENGTH = 32;
-	constexpr static std::uint32_t TIMEOUT		= 1000;
-	constexpr static std::uint8_t preamble		= 0x00;
-	constexpr static std::uint8_t start_code[2]{0x00, 0xFF};
-	constexpr static std::uint8_t frame_identifier = 0xD5;
-	constexpr static std::uint8_t postamble		   = 0x00;
-	constexpr static std::uint8_t wakeup_frame[]{
+	constexpr static uint8_t BUFFER_LENGTH = 32;
+	constexpr static uint32_t TIMEOUT		= 1000;
+	constexpr static uint8_t preamble		= 0x00;
+	constexpr static uint8_t start_code[2]{0x00, 0xFF};
+	constexpr static uint8_t frame_identifier = 0xD5;
+	constexpr static uint8_t postamble		   = 0x00;
+	constexpr static uint8_t wakeup_frame[]{
 		0x55, 0x55, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x03, 0xFD, 0xD4, 0x14, 0x01, 0x17, 0x00};
-	enum command : std::uint8_t
+	enum command : uint8_t
 	{
 		GET_FIRMWARE_VERSION  = 0x02,
 		SAM_CONFIGURATION	  = 0x14,
 		IN_LIST_PASSIVETARGET = 0x4A,
 	};
 
-	std::uint8_t last_send_command_;
-	static void send_command(std::uint8_t command, std::uint8_t *data, std::uint8_t length)
+	uint8_t last_send_command_;
+	static void send_command(uint8_t command, uint8_t *data, uint8_t length)
 	{
 
-		std::uint8_t length_check_sum = 0x100 - (length + 2);
+		uint8_t length_check_sum = 0x100 - (length + 2);
 		/*
 		0xD4:MCU->PN532
 		0xD5:PN532->MCU
 		*/
-		std::array<std::uint8_t, 7> frame{
+		std::array<uint8_t, 7> frame{
 			preamble,
 			start_code[0],
 			start_code[1],
-			static_cast<std::uint8_t>(length + 2),
+			static_cast<uint8_t>(length + 2),
 			length_check_sum,
 			frame_identifier - 1,
 			command,
 		};
 		HAL::transmit(frame.data(), frame.size(), TIMEOUT);
-		std::uint8_t data_check_sum = (frame_identifier-1) + command;
-		for (std::uint8_t i = 0; (i < length) && data != nullptr; ++i)
+		uint8_t data_check_sum = (frame_identifier-1) + command;
+		for (uint8_t i = 0; (i < length) && data != nullptr; ++i)
 		{
 			HAL::transmit(data, 1, TIMEOUT);
 			data_check_sum += *data++;
@@ -2012,11 +2012,11 @@ class PN532_
 	}
 	static void send_ACK()
 	{
-		constexpr std::array<std::uint8_t, 6> write_buf{0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00};
+		constexpr std::array<uint8_t, 6> write_buf{0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00};
 		HAL::transmit(write_buf.data(), write_buf.size(), TIMEOUT);
 	}
 
-	void log_card_info_A(int card_number, std::uint16_t ATQA, std::uint8_t SAk, std::uint8_t ID_length, std::uint8_t *ID)
+	void log_card_info_A(int card_number, uint16_t ATQA, uint8_t SAk, uint8_t ID_length, uint8_t *ID)
 	{
 		(void)card_number;
 		LOG::INFO("Found ISO/IEC 14443-A card\n");
@@ -2036,21 +2036,21 @@ class PN532_
 		}
 		LOG::NORMAL(LogLevel::INFO, "\n");
 	}
-	void log_ATS(std::uint8_t *ATS)
+	void log_ATS(uint8_t *ATS)
 	{
 		/*TL + T0 + (TA1) + (TB1) + (TC1) + (T1~TK) + (Historical Bytes)*/
-		std::uint8_t length = ATS[0];
+		uint8_t length = ATS[0];
 
 		/*中间4字节复杂且找不到参考资料，不解析*/
 
 		LOG::INFO("ATS");
-		for (std::uint8_t i = 5; i < length; ++i)
+		for (uint8_t i = 5; i < length; ++i)
 		{
 			LOG::NORMAL(LogLevel::INFO, ":%02X", ATS[i]);
 		}
 		LOG::NORMAL(LogLevel::INFO, "\n");
 	}
-	void log_card_info_B(std::uint8_t *ATQB, std::uint8_t ATTRIB_length, std::uint8_t *ATTRIB)
+	void log_card_info_B(uint8_t *ATQB, uint8_t ATTRIB_length, uint8_t *ATTRIB)
 	{
 		LOG::INFO("Found ISO/IEC 14443-B card\n");
 		LOG::INFO("PUPI: 0x%02X 0x%02X 0x%02X 0x%02X\n", ATQB[0], ATQB[1], ATQB[2], ATQB[3]);
@@ -2064,7 +2064,7 @@ class PN532_
 		}
 		LOG::NORMAL(LogLevel::INFO, "\n");
 	}
-	void command_Handld(std::uint8_t command, std::uint8_t *data, std::uint8_t length)
+	void command_Handld(uint8_t command, uint8_t *data, uint8_t length)
 	{
 		if (command - 1 == last_send_command_) /*如果收到的命令是（上次发送的命令-1）*/
 		{
@@ -2121,7 +2121,7 @@ class PN532_
 	}
 
 public:
-	enum class card_type : std::uint8_t
+	enum class card_type : uint8_t
 	{
 		MIFARE	  = 0x00,
 		DESfire	  = 0x00,
@@ -2142,21 +2142,21 @@ public:
 	}
 
 	/*建议一次只读一张卡，2张同时暂不支持(软件可以支持，但是硬件触发的条件比较苛刻，写了也是白写)*/
-	void scan_card(card_type card_type, std::uint8_t card_number = 1)
+	void scan_card(card_type card_type, uint8_t card_number = 1)
 	{
 		if (card_type == card_type::MIFARE)
 		{
-			std::array<std::uint8_t, 2> data{card_number, static_cast<std::uint8_t>(card_type::MIFARE)};
+			std::array<uint8_t, 2> data{card_number, static_cast<uint8_t>(card_type::MIFARE)};
 			send_command(IN_LIST_PASSIVETARGET, data.data(), data.size());
 		}
 		else if (card_type == card_type::ISO14443A)
 		{
-			std::array<std::uint8_t, 2> data{1, static_cast<std::uint8_t>(card_type::ISO14443A)};
+			std::array<uint8_t, 2> data{1, static_cast<uint8_t>(card_type::ISO14443A)};
 			send_command(IN_LIST_PASSIVETARGET, data.data(), data.size());
 		}
 		else if (card_type == card_type::ISO14443B)
 		{
-			std::array<std::uint8_t, 3> data{1, static_cast<std::uint8_t>(card_type::ISO14443B), 00};
+			std::array<uint8_t, 3> data{1, static_cast<uint8_t>(card_type::ISO14443B), 00};
 			send_command(IN_LIST_PASSIVETARGET, data.data(), data.size());
 		}
 		else if (card_type == card_type::FeliCa) /*手上没有这种卡，暂时不支持*/
@@ -2175,7 +2175,7 @@ public:
 	{
 		if (RB::get_used() >= 6)
 		{
-			std::uint8_t read_buf[BUFFER_LENGTH];
+			uint8_t read_buf[BUFFER_LENGTH];
 			RB::peek((void *)read_buf, 6);
 			if (
 				read_buf[0] == 0x00 &&
@@ -2191,7 +2191,7 @@ public:
 		}
 		if (RB::get_used() >= 9)
 		{
-			std::uint8_t read_buf[BUFFER_LENGTH];
+			uint8_t read_buf[BUFFER_LENGTH];
 			RB::peek((void *)read_buf, 6);
 			if (read_buf[0] == preamble &&
 				read_buf[1] == start_code[0] &&
@@ -2199,20 +2199,20 @@ public:
 				read_buf[3] + read_buf[4] == 0x100 &&
 				read_buf[5] == frame_identifier)
 			{
-				std::uint8_t length = read_buf[3] - 1;
+				uint8_t length = read_buf[3] - 1;
 				if (RB::get_used() > length + 1u /*DCS*/ + 1u /*POSTAMBLE*/ + 1u /*这个是冗余，防止过多的校验和错误*/)
 				{
 					RB::drop(6);
 					RB::read((void *)read_buf, length); /*读出数据段*/
-					std::uint8_t command		= read_buf[0];
-					std::uint8_t *data			= read_buf + 1;
-					std::uint8_t data_check_sum = frame_identifier + command;
-					for (std::uint8_t i = 0; i < length - 1; ++i)
+					uint8_t command		= read_buf[0];
+					uint8_t *data			= read_buf + 1;
+					uint8_t data_check_sum = frame_identifier + command;
+					for (uint8_t i = 0; i < length - 1; ++i)
 					{
 						data_check_sum += *data++;
 					}
 					RB::read((void *)read_buf, 1);
-					if (static_cast<std::uint8_t>(data_check_sum + read_buf[0]) == 0x00)
+					if (static_cast<uint8_t>(data_check_sum + read_buf[0]) == 0x00)
 					{
 						RB::drop(1);
 						send_ACK();

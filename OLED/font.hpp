@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 
 typedef struct
 {
@@ -9,5 +9,5 @@ typedef struct
 } ChineseCell_t;
 
 // 兼容C++17之前，不在头文件内联变量
-extern const std::uint8_t EN8_16[][16];
+extern const uint8_t EN8_16[][16];
 extern const ChineseCell_t OLED_CF16x16[];

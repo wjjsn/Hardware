@@ -3,14 +3,14 @@
 /*由于mpr121已停产，所以只提供简单支持*/
 /*Because mpr121 has been discontinued, only simple support is provided*/
 /*i2c address: 0x5A 0x5B 0x5C 0x5D*/
-#include <cstdint>
+#include <stdint.h>
 
 // uncomment to use autoconfig !
 // #define AUTOCONFIG // use autoconfig (Yes it works pretty well!)
 template <typename i2c_device_7bits>
 class mpr121
 {
-	static const std::uint16_t DEFAULT_TIMEOUT = 1000;
+	static const uint16_t DEFAULT_TIMEOUT = 1000;
 	enum reg
 	{
 		TOUCHSTATUS_L = 0x00,
@@ -84,7 +84,7 @@ public:
 		writeRegister(SOFTRESET, 0x63); // 软重置
 		writeRegister(ECR, 0x00);
 
-		std::uint8_t c;
+		uint8_t c;
 		i2c_device_7bits::mem_read(CONFIG2, i2c_device_7bits::MEMADD_SIZE_8BIT, &c, 1, DEFAULT_TIMEOUT);
 		if (c != 0x24) { return; }
 
@@ -121,7 +121,7 @@ public:
 	}
 	static uint16_t touched()
 	{
-		std::uint8_t buf[2];
+		uint8_t buf[2];
 		i2c_device_7bits::mem_read(TOUCHSTATUS_H, i2c_device_7bits::MEMADD_SIZE_8BIT, &buf[0], 1, DEFAULT_TIMEOUT);
 		i2c_device_7bits::mem_read(TOUCHSTATUS_L, i2c_device_7bits::MEMADD_SIZE_8BIT, &buf[1], 1, DEFAULT_TIMEOUT);
 		return (buf[0] << 8 | buf[1]);
