@@ -1,129 +1,74 @@
 #pragma once
-/*修改于Adafruit*/
-/*由于mpr121已停产，所以只提供简单支持*/
-/*Because mpr121 has been discontinued, only simple support is provided*/
-/*i2c address: 0x5A 0x5B 0x5C 0x5D*/
-#include <cstdint>
 
-// uncomment to use autoconfig !
-// #define AUTOCONFIG // use autoconfig (Yes it works pretty well!)
-template <typename i2c_device_7bits>
-class mpr121
+#include <stdint.h>
+
+// MPR121 capacitive touch controller, I2C addresses 0x5A-0x5D, 8-bit registers.
+namespace Hardware
 {
-	static const std::uint16_t DEFAULT_TIMEOUT = 1000;
-	enum reg
-	{
-		TOUCHSTATUS_L = 0x00,
-		TOUCHSTATUS_H = 0x01,
-		FILTDATA_0L	  = 0x04,
-		FILTDATA_0H	  = 0x05,
-		BASELINE_0	  = 0x1E,
-		MHDR		  = 0x2B,
-		NHDR		  = 0x2C,
-		NCLR		  = 0x2D,
-		FDLR		  = 0x2E,
-		MHDF		  = 0x2F,
-		NHDF		  = 0x30,
-		NCLF		  = 0x31,
-		FDLF		  = 0x32,
-		NHDT		  = 0x33,
-		NCLT		  = 0x34,
-		FDLT		  = 0x35,
-
-		TOUCHTH_0	 = 0x41,
-		RELEASETH_0	 = 0x42,
-		DEBOUNCE	 = 0x5B,
-		CONFIG1		 = 0x5C,
-		CONFIG2		 = 0x5D,
-		CHARGECURR_0 = 0x5F,
-		CHARGETIME_1 = 0x6C,
-		ECR			 = 0x5E,
-		AUTOCONFIG0	 = 0x7B,
-		AUTOCONFIG1	 = 0x7C,
-		UPLIMIT		 = 0x7D,
-		LOWLIMIT	 = 0x7E,
-		TARGETLIMIT	 = 0x7F,
-
-		GPIODIR	   = 0x76,
-		GPIOEN	   = 0x77,
-		GPIOSET	   = 0x78,
-		GPIOCLR	   = 0x79,
-		GPIOTOGGLE = 0x7A,
-
-		SOFTRESET = 0x80,
-	};
-	static void writeRegister(uint8_t reg, uint8_t value)
-	{
-		bool stop_required = true; // 判断是否需要进入停止状态指示位
-		uint8_t ecr_backup;		   // 备份电极配置寄存器(ERC寄存器)
-		i2c_device_7bits::mem_read(reg, i2c_device_7bits::MEMADD_SIZE_8BIT, &ecr_backup, 1, DEFAULT_TIMEOUT);
-		uint8_t ecr_chear = 0x00;
-		if ((reg == ECR) || ((0x73 <= reg) && (reg <= 0x7A))) { stop_required = false; } // 如果成立则无需进入停止状态
-		if (stop_required)																 // 清除ERC寄存器，进入停止状态
-		{
-			i2c_device_7bits::mem_write(ECR, i2c_device_7bits::MEMADD_SIZE_8BIT, &ecr_chear, 1, DEFAULT_TIMEOUT);
-		}
-		i2c_device_7bits::mem_write(reg, i2c_device_7bits::MEMADD_SIZE_8BIT, &value, 1, DEFAULT_TIMEOUT); // 开始写入目标寄存器
-		if (stop_required)																				  // 还原ERC寄存器的值
-		{
-			i2c_device_7bits::mem_write(ECR, i2c_device_7bits::MEMADD_SIZE_8BIT, &ecr_backup, 1, DEFAULT_TIMEOUT);
-		}
-	};
-	static void setThresholds(uint8_t touch, uint8_t release)
-	{
-		for (uint8_t i = 0; i < 12; i++)
-		{
-			writeRegister(TOUCHTH_0 + 2 * i, touch);
-			writeRegister(RELEASETH_0 + 2 * i, release);
-		}
-	}
-
+template <typename i2c_device>
+class Mpr121
+{
 public:
-	static void init(uint8_t touch = 12, uint8_t release = 6)
+	static bool init(uint8_t touch_threshold = 12, uint8_t release_threshold = 6)
 	{
-		writeRegister(SOFTRESET, 0x63); // 软重置
-		writeRegister(ECR, 0x00);
-
-		std::uint8_t c;
-		i2c_device_7bits::mem_read(CONFIG2, i2c_device_7bits::MEMADD_SIZE_8BIT, &c, 1, DEFAULT_TIMEOUT);
-		if (c != 0x24) { return; }
-
-		setThresholds(touch, release);
-		writeRegister(MHDR, 0x01);
-		writeRegister(NHDR, 0x01);
-		writeRegister(NCLR, 0x0E);
-		writeRegister(FDLR, 0x00);
-
-		writeRegister(MHDF, 0x01);
-		writeRegister(NHDF, 0x05);
-		writeRegister(NCLF, 0x01);
-		writeRegister(FDLF, 0x00);
-
-		writeRegister(NHDT, 0x00);
-		writeRegister(NCLT, 0x00);
-		writeRegister(FDLT, 0x00);
-
-		writeRegister(DEBOUNCE, 0);
-		writeRegister(CONFIG1, 0x10); // default, 16uA charge current
-		writeRegister(CONFIG2, 0x20); // 0.5uS encoding, 1ms period
-
-#ifdef AUTOCONFIG
-		writeRegister(AUTOCONFIG0, 0x0B);
-
-		// correct values for Vdd = 3.3V
-		writeRegister(UPLIMIT, 200);	 // ((Vdd - 0.7)/Vdd) * 256
-		writeRegister(TARGETLIMIT, 180); // UPLIMIT * 0.9
-		writeRegister(LOWLIMIT, 130);	 // UPLIMIT * 0.65
-#endif
-
-		uint8_t ECR_SETTING = 0x8C;		 // 配置ECR寄存器，位的作用在数据手册的第16页
-		writeRegister(ECR, ECR_SETTING); // start with above ECR setting
+		i2c_device::init();
+		write_register(Register::SoftReset, 0x63);
+		write_register(Register::Ecr, 0x00);
+		uint8_t config = 0;
+		i2c_device::mem_read(value(Register::Config2), &config, 1, timeout);
+		if (config != 0x24U) return false;
+		set_thresholds(touch_threshold, release_threshold);
+		write_register(Register::Mhdr, 0x01); write_register(Register::Nhdr, 0x01);
+		write_register(Register::Nclr, 0x0E); write_register(Register::Fdlr, 0x00);
+		write_register(Register::Mhdf, 0x01); write_register(Register::Nhdf, 0x05);
+		write_register(Register::Nclf, 0x01); write_register(Register::Fdlf, 0x00);
+		write_register(Register::Nhdt, 0x00); write_register(Register::Nclt, 0x00);
+		write_register(Register::Fdlt, 0x00); write_register(Register::Debounce, 0x00);
+		write_register(Register::Config1, 0x10); write_register(Register::Config2, 0x20);
+		write_register(Register::Ecr, 0x8C);
+		return true;
 	}
-	static uint16_t touched()
+
+	static uint16_t read_touched()
 	{
-		std::uint8_t buf[2];
-		i2c_device_7bits::mem_read(TOUCHSTATUS_H, i2c_device_7bits::MEMADD_SIZE_8BIT, &buf[0], 1, DEFAULT_TIMEOUT);
-		i2c_device_7bits::mem_read(TOUCHSTATUS_L, i2c_device_7bits::MEMADD_SIZE_8BIT, &buf[1], 1, DEFAULT_TIMEOUT);
-		return (buf[0] << 8 | buf[1]);
+		uint8_t data[2]{};
+		i2c_device::mem_read(value(Register::TouchStatusLow), data, 2, timeout);
+		return static_cast<uint16_t>(data[0]) | (static_cast<uint16_t>(data[1]) << 8U);
+	}
+
+private:
+	enum class Register : uint8_t
+	{
+		TouchStatusLow = 0x00, Mhdr = 0x2B, Nhdr = 0x2C, Nclr = 0x2D, Fdlr = 0x2E,
+		Mhdf = 0x2F, Nhdf = 0x30, Nclf = 0x31, Fdlf = 0x32, Nhdt = 0x33, Nclt = 0x34,
+		Fdlt = 0x35, TouchThreshold0 = 0x41, ReleaseThreshold0 = 0x42, Debounce = 0x5B,
+		Config1 = 0x5C, Config2 = 0x5D, Ecr = 0x5E, SoftReset = 0x80
+	};
+	static constexpr uint32_t timeout = 1000;
+	static constexpr uint16_t value(Register reg) { return static_cast<uint16_t>(reg); }
+
+	static void write_register(Register reg, uint8_t data)
+	{
+		const uint16_t address = value(reg);
+		const bool stop_required = reg != Register::Ecr && !(address >= 0x73U && address <= 0x7AU);
+		uint8_t ecr = 0;
+		if (stop_required)
+		{
+			i2c_device::mem_read(value(Register::Ecr), &ecr, 1, timeout);
+			const uint8_t stop = 0;
+			i2c_device::mem_write(value(Register::Ecr), &stop, 1, timeout);
+		}
+		i2c_device::mem_write(address, &data, 1, timeout);
+		if (stop_required) i2c_device::mem_write(value(Register::Ecr), &ecr, 1, timeout);
+	}
+
+	static void set_thresholds(uint8_t touch, uint8_t release)
+	{
+		for (uint8_t electrode = 0; electrode < 12U; ++electrode)
+		{
+			write_register(static_cast<Register>(value(Register::TouchThreshold0) + 2U * electrode), touch);
+			write_register(static_cast<Register>(value(Register::ReleaseThreshold0) + 2U * electrode), release);
+		}
 	}
 };
+}

@@ -1,37 +1,39 @@
 #pragma once
-#ifdef __cplusplus
-
-template <typename motor, typename IN1, typename IN2>
+namespace Hardware
+{
+template <typename motor, typename in1_gpio, typename in2_gpio>
 struct TB6612
 {
 	static void init()
 	{
+		in1_gpio::init();
+		in2_gpio::init();
 		motor::init();
+		stop();
 	}
 	static void forward(float speed)
 	{
-		IN1::set();
-		IN2::set();
+		in1_gpio::set();
+		in2_gpio::clear();
 		motor::set_speed(speed);
 	}
 	static void backward(float speed)
 	{
-		IN1::set();
-		IN2::clear();
+		in1_gpio::clear();
+		in2_gpio::set();
 		motor::set_speed(speed);
 	}
 	static void stop()
 	{
-		IN1::clear();
-		IN2::clear();
+		in1_gpio::clear();
+		in2_gpio::clear();
 		motor::set_speed(0);
 	}
 	static void brake()
 	{
-		IN1::set();
-		IN2::set();
+		in1_gpio::set();
+		in2_gpio::set();
 		motor::set_speed(0);
 	}
 };
-
-#endif
+}

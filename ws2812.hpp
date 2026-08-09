@@ -1,47 +1,61 @@
 #pragma once
 
-#include <cstdint>
+#include <atomic>
+#include <cstddef>
+#include <stdint.h>
 #include "bits_operation.hpp"
-template <typename PWM, const int led_num>
+namespace Hardware
+{
+template <typename pwm, std::size_t led_count>
 class WS2812
 {
-	enum compare_value
+	static_assert(led_count > 0, "led_count must be non-zero");
+	enum class CompareValue : uint16_t
 	{
-		code0 = 30,
-		code1 = 60,
-		reset = 0
+		Code0 = 30,
+		Code1 = 60,
+		Reset = 0
 	};
-	std::uint16_t rgb_buf_[led_num * 24 + 1] = {0}; // todo:最后一位为reset
-	std::uint16_t step_						 = 0;
+	uint16_t rgb_buffer_[led_count * 24U + 1U]{};
+	std::atomic<std::size_t> step_{led_count * 24U + 1U};
 
 public:
-	void set_one(std::uint16_t pos, std::uint32_t color)
+	bool set_one(std::size_t position, uint32_t color)
 	{
-		std::uint8_t
-			R = color >> 16,
-			G = color >> 8,
-			B = color >> 0;
-		for (int i = 0; i < 8; ++i)
+		if (position >= led_count) return false;
+		const uint8_t red = static_cast<uint8_t>(color >> 16U);
+		const uint8_t green = static_cast<uint8_t>(color >> 8U);
+		const uint8_t blue = static_cast<uint8_t>(color);
+		for (std::size_t bit = 0; bit < 8U; ++bit)
 		{
-			rgb_buf_[pos * 24 + i + 0]	= READ_BIT(G, i) ? code1 : code0;
-			rgb_buf_[pos * 24 + i + 8]	= READ_BIT(R, i) ? code1 : code0;
-			rgb_buf_[pos * 24 + i + 16] = READ_BIT(B, i) ? code1 : code0;
+			rgb_buffer_[position * 24U + bit] = BIT::READ(green, 7U - bit) ? value(CompareValue::Code1) : value(CompareValue::Code0);
+			rgb_buffer_[position * 24U + bit + 8U] = BIT::READ(red, 7U - bit) ? value(CompareValue::Code1) : value(CompareValue::Code0);
+			rgb_buffer_[position * 24U + bit + 16U] = BIT::READ(blue, 7U - bit) ? value(CompareValue::Code1) : value(CompareValue::Code0);
 		}
+		return true;
 	}
-	void set_multiple(std::uint16_t start, std::uint16_t stop, std::uint32_t color)
+	bool set_multiple(std::size_t start, std::size_t stop, uint32_t color)
 	{
-		for (int i = start; i < stop; ++i)
+		if (start > stop || stop > led_count) return false;
+		for (std::size_t i = start; i < stop; ++i)
 		{
 			set_one(i, color);
 		}
+		return true;
 	}
 	void update()
 	{
-		step_ = 0;
+		rgb_buffer_[led_count * 24U] = value(CompareValue::Reset);
+		step_.store(0, std::memory_order_release);
 	}
-	void IRQ_Handler() // 放入800KHz的定时器中断中
+	void update_isr()
 	{
-		if (step_ <= led_num * 24 + 1) // todo：尝试优化掉这个if
-			PWM::set_compare(rgb_buf_[step_++]);
+		const std::size_t step = step_.fetch_add(1U, std::memory_order_acquire);
+		if (step < led_count * 24U + 1U) pwm::set_compare(rgb_buffer_[step]);
+		else pwm::set_compare(value(CompareValue::Reset));
 	}
+
+private:
+	static constexpr uint16_t value(CompareValue value) { return static_cast<uint16_t>(value); }
 };
+}

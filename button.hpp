@@ -1,5 +1,12 @@
-#include <cstdint>
+#pragma once
 
+#include <atomic>
+#include <array>
+#include <cstddef>
+#include <stdint.h>
+
+namespace Hardware
+{
 using CallbackFunc = void (*)();
 
 /*
@@ -9,40 +16,45 @@ using CallbackFunc = void (*)();
  * - HoldTask: 长按回调函数
  * - ClickTasks: 连击回调函数包（依次为 单击、双击、三击...）
  */
-template <typename GPIO, bool TrigState, CallbackFunc HoldTask, CallbackFunc... ClickTasks>
+template <typename gpio, bool trigger_state, CallbackFunc hold_task, CallbackFunc... click_tasks>
 struct StaticKey
 {
 private:
 	// 编译期自动计算注册的最高连击次数
-	static constexpr std::size_t MAX_CLICKS = sizeof...(ClickTasks);
+	static constexpr std::size_t max_clicks = sizeof...(click_tasks);
 
 	// 静态状态变量
-	inline static bool stateRealTime		  = !TrigState;
-	inline static bool stateLastTime		  = !TrigState;
-	inline static uint32_t clickCountRealTime = 0;
-	inline static uint32_t clickCountLastTime = 0;
-	inline static uint32_t holdCount		  = 0;
-	inline static bool holding			  = false;
+	inline static std::atomic<bool> current_state{!trigger_state};
+	inline static bool previous_state = !trigger_state; // ISR-owned after init().
+	inline static std::atomic<uint32_t> click_count{0};
+	inline static uint32_t previous_click_count = 0; // Main-loop-owned.
+	inline static std::atomic<uint32_t> hold_count{0};
+	inline static std::atomic<bool> holding{false};
 
 public:
 	// 1. 初始化接口
 	static void init()
 	{
-		GPIO::init();
-		stateRealTime = GPIO::read();
-		stateLastTime = stateRealTime;
+		gpio::init();
+		const bool state = gpio::read();
+		current_state.store(state, std::memory_order_relaxed);
+		previous_state = state;
+		click_count.store(0, std::memory_order_relaxed);
+		previous_click_count = 0;
+		hold_count.store(0, std::memory_order_relaxed);
+		holding.store(false, std::memory_order_relaxed);
 	}
 
 	// 2. 检测长按状态
 	static void detect_key_hold()
 	{
-		if (holdCount >= 60)
+		if (hold_count.load(std::memory_order_acquire) >= 60U &&
+			!holding.exchange(true, std::memory_order_acq_rel))
 		{
-			holdCount = 60;
-			holding = true;
-			if (HoldTask)
+			hold_count.store(60, std::memory_order_release);
+			if (hold_task)
 			{
-				HoldTask();
+				hold_task();
 			}
 		}
 	}
@@ -50,25 +62,30 @@ public:
 	// 3. 按键状态扫描（建议在定时器中断中调用，如 10ms 或 20ms）
 	static void detect_key_click()
 	{
-		stateLastTime = stateRealTime;
-		stateRealTime = GPIO::read();
+		previous_state = current_state.load(std::memory_order_relaxed);
+		const bool state = gpio::read();
+		current_state.store(state, std::memory_order_release);
 
 		// 检测释放边缘（从触发电平变为非触发电平，计为一次点击完成）
-		if (stateRealTime == (!TrigState) && stateLastTime == TrigState)
+		if (state == !trigger_state && previous_state == trigger_state)
 		{
-			clickCountRealTime++;
+			click_count.fetch_add(1U, std::memory_order_release);
 		}
 
 		// 持续处于触发状态，累加长按计数
-		if (stateRealTime == TrigState && stateLastTime == TrigState)
+		if (state == trigger_state && previous_state == trigger_state)
 		{
-			holdCount++;
+			uint32_t count = hold_count.load(std::memory_order_relaxed);
+			while (count < 60U && !hold_count.compare_exchange_weak(
+				count, count + 1U, std::memory_order_release, std::memory_order_relaxed))
+			{
+			}
 		}
 
 		// 持续处于释放状态，清空长按计数
-		if (stateRealTime == (!TrigState) && stateLastTime == (!TrigState))
+		if (state == !trigger_state && previous_state == !trigger_state)
 		{
-			holdCount = 0;
+			hold_count.store(0, std::memory_order_release);
 		}
 	}
 
@@ -79,35 +96,38 @@ public:
 		detect_key_hold();
 
 		// 状态还在改变，或者没有点击，直接返回（消抖或等待连续点击结束）
-		if (clickCountRealTime != clickCountLastTime || clickCountRealTime == 0)
+		const uint32_t observed_clicks = click_count.load(std::memory_order_acquire);
+		if (observed_clicks != previous_click_count || observed_clicks == 0U ||
+			current_state.load(std::memory_order_acquire) == trigger_state)
 		{
-			clickCountLastTime = clickCountRealTime;
+			previous_click_count = observed_clicks;
 			return;
 		}
 
 		// 计数稳定且不为 0，说明连击结束，开始处理
-		if (clickCountRealTime == clickCountLastTime && clickCountRealTime != 0)
+		const uint32_t clicks = click_count.exchange(0U, std::memory_order_acq_rel);
+		previous_click_count = 0;
+		if (clicks != 0U)
 		{
-			std::size_t clickIndex = clickCountRealTime - 1;
+			const std::size_t click_index = clicks - 1U;
 
 			// 将编译期参数包直接初始化为局部静态只读数组
-			static constexpr CallbackFunc tasks[] = {ClickTasks...};
+			static constexpr std::array<CallbackFunc, max_clicks> tasks{click_tasks...};
 
 			// O(1) 数组直达，安全检查边界后直接调用
-			if (clickIndex < MAX_CLICKS)
+			if (click_index < max_clicks)
 			{
-				if (clickIndex == 0 && holding)
+				if (click_index == 0 && holding.exchange(false, std::memory_order_acq_rel))
 				{
 					holding = false;
 				}
-				else if (tasks[clickIndex])
+				else if (tasks[click_index])
 				{
-					tasks[clickIndex]();
+					tasks[click_index]();
 				}
 			}
 
-			// 计数器清零
-			clickCountRealTime = clickCountLastTime = 0;
 		}
 	}
 };
+}

@@ -1,16 +1,18 @@
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 
 /**
  * @brief  GD25Q SPI Flash 驱动 (静态类)
  * @note   模板参数 spi_device 是 HAL::gd32f4::SPI_device<BUS, CS>
  *         所有方法均为 static, 无需实例化
  */
+namespace Hardware
+{
 template <typename spi_device>
 struct GD25Q
 {
-	enum commands
+	enum class Command : uint8_t
 	{
 		WRITE_DATA			 = 0x02,
 		WRITE_STATE_REGISTER = 0x01,
@@ -25,152 +27,103 @@ struct GD25Q
 		// 0x05?
 		WIP_FLAG   = 0x01,
 		DUMMY_BYTE = 0xA5, // byte for generate clock
-		PAGE_SIZE  = 0x100
 	};
+	static constexpr uint16_t page_size = 0x100;
+	static constexpr uint32_t timeout = 1000;
+	static constexpr uint32_t status_poll_limit = 1000000;
 
 private:
 	static void write_enable()
 	{
-		std::uint8_t write_enable = WRITE_ENABLE;
-		spi_device::transmit(&write_enable, 1);
+		const uint8_t command = static_cast<uint8_t>(Command::WRITE_ENABLE);
+		spi_device::transmit(&command, 1, timeout);
 	}
-	static void wait_for_write_end()
+	static bool wait_for_write_end()
 	{
 		// 命令 (0x05) 和状态读循环必须在同一 CS 窗口内,
 		// 否则 flash 不会回状态字节, 读到的是 stale 数据
-		std::uint8_t gd25q_status = 0;
-		std::uint8_t read_status_register = READ_STATE_REGISTER;
+		uint8_t gd25q_status = 0;
+		const uint8_t read_status_register = static_cast<uint8_t>(Command::READ_STATE_REGISTER);
 		spi_device::select();
-		spi_device::transmit_without_ctl_select(&read_status_register, 1);
-		do {
-			std::uint8_t dummy = DUMMY_BYTE;
-			spi_device::transfer_without_ctl_select(&dummy, 1);
+		spi_device::transmit_without_ctl_select(&read_status_register, 1, timeout);
+		for (uint32_t attempt = 0; attempt < status_poll_limit; ++attempt)
+		{
+			uint8_t dummy = static_cast<uint8_t>(Command::DUMMY_BYTE);
+			spi_device::transfer_without_ctl_select(&dummy, 1, timeout);
 			gd25q_status = dummy;
-		} while (1 == (gd25q_status & WIP_FLAG));
+			if ((gd25q_status & static_cast<uint8_t>(Command::WIP_FLAG)) == 0U)
+			{
+				spi_device::deselect();
+				return true;
+			}
+		}
 		spi_device::deselect();
+		return false;
 	}
 
 public:
-	static std::uint32_t read_id()
+	static void init() { spi_device::init(); }
+	static uint32_t read_id()
 	{
 		// transfer() 一次拉低/拉高 CS，命令+地址+数据都在同一 CS 窗口内
 		// SPI 全双工：同一缓冲区，发送值会被接收值覆盖
-		std::uint8_t buf[4] = {READ_ID, DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE};
-		spi_device::transfer(buf, 4);
-		return (buf[1] << 16) | (buf[2] << 8) | buf[3];
+		uint8_t buf[4] = {static_cast<uint8_t>(Command::READ_ID), 0xFF, 0xFF, 0xFF};
+		spi_device::transfer(buf, 4, timeout);
+		return (static_cast<uint32_t>(buf[1]) << 16U) | (static_cast<uint32_t>(buf[2]) << 8U) | buf[3];
 	}
-	static void sector_erase(std::uint32_t sector_addr)
+	static bool erase_sector(uint32_t sector_addr)
 	{
 		write_enable();
-		std::uint8_t send_buf[4] = {ERASE_SECTOR,
-									static_cast<std::uint8_t>(sector_addr >> 16),
-									static_cast<std::uint8_t>(sector_addr >> 8),
-									static_cast<std::uint8_t>(sector_addr >> 0)};
-		spi_device::transmit(send_buf, 4);
-		wait_for_write_end();
+		const uint8_t send_buf[4] = {static_cast<uint8_t>(Command::ERASE_SECTOR),
+									static_cast<uint8_t>(sector_addr >> 16),
+									static_cast<uint8_t>(sector_addr >> 8),
+									static_cast<uint8_t>(sector_addr >> 0)};
+		spi_device::transmit(send_buf, 4, timeout);
+		return wait_for_write_end();
 	}
-	static void chip_erase()
+	static bool erase_chip()
 	{
 		write_enable();
-		std::uint8_t chip_erase = ERASE_BILK;
-		spi_device::transmit(&chip_erase, 1);
-		wait_for_write_end();
+		const uint8_t command = static_cast<uint8_t>(Command::ERASE_BILK);
+		spi_device::transmit(&command, 1, timeout);
+		return wait_for_write_end();
 	}
-	static void page_write(std::uint8_t *pbuffer, std::uint32_t write_addr, std::uint16_t num_byte_to_write)
+	static bool write_page(const uint8_t *data, uint32_t address, uint16_t size)
 	{
+		if (data == nullptr || size == 0U || size > page_size || (address % page_size) + size > page_size) return false;
 		write_enable();
-		std::uint8_t send_buf[4] = {WRITE_DATA,
-									static_cast<std::uint8_t>(write_addr >> 16),
-									static_cast<std::uint8_t>(write_addr >> 8),
-									static_cast<std::uint8_t>(write_addr >> 0)};
+		const uint8_t send_buf[4] = {static_cast<uint8_t>(Command::WRITE_DATA),
+			static_cast<uint8_t>(address >> 16U), static_cast<uint8_t>(address >> 8U), static_cast<uint8_t>(address)};
 		// 命令+地址 和 数据 需要在同一个 CS 窗口内，因此手动控 CS
 		spi_device::select();
-		spi_device::transmit_without_ctl_select(send_buf, 4);
-		spi_device::transmit_without_ctl_select(pbuffer, num_byte_to_write);
+		spi_device::transmit_without_ctl_select(send_buf, 4, timeout);
+		spi_device::transmit_without_ctl_select(data, size, timeout);
 		spi_device::deselect();
-		wait_for_write_end();
+		return wait_for_write_end();
 	}
-	static void block_write(std::uint8_t *pbuffer, std::uint32_t write_addr, std::uint16_t num_byte_to_write)
+	static bool write(const uint8_t *data, uint32_t address, uint16_t size)
 	{
-		std::uint8_t num_of_page = 0, num_of_single = 0, addr = 0, count = 0, temp = 0;
-
-		addr		  = write_addr % PAGE_SIZE;
-		count		  = PAGE_SIZE - addr;
-		num_of_page	  = num_byte_to_write / PAGE_SIZE;
-		num_of_single = num_byte_to_write % PAGE_SIZE;
-
-		/* write_addr is PAGE_SIZE aligned */
-		if (0 == addr)
+		if (data == nullptr && size != 0U) return false;
+		while (size > 0U)
 		{
-			/* num_byte_to_write < PAGE_SIZE */
-			if (0 == num_of_page)
-			{
-				page_write(pbuffer, write_addr, num_byte_to_write);
-			}
-			else
-			{
-				/* num_byte_to_write >= PAGE_SIZE */
-				while (num_of_page--)
-				{
-					page_write(pbuffer, write_addr, PAGE_SIZE);
-					write_addr += PAGE_SIZE;
-					pbuffer += PAGE_SIZE;
-				}
-				page_write(pbuffer, write_addr, num_of_single);
-			}
+			const uint16_t chunk = static_cast<uint16_t>(page_size - address % page_size < size
+				? page_size - address % page_size : size);
+			if (!write_page(data, address, chunk)) return false;
+			data += chunk; address += chunk; size -= chunk;
 		}
-		else
-		{
-			/* write_addr is not PAGE_SIZE aligned */
-			if (0 == num_of_page)
-			{
-				/* (num_byte_to_write + write_addr) > PAGE_SIZE */
-				if (num_of_single > count)
-				{
-					temp = num_of_single - count;
-					page_write(pbuffer, write_addr, count);
-					write_addr += count;
-					pbuffer += count;
-					page_write(pbuffer, write_addr, temp);
-				}
-				else
-				{
-					page_write(pbuffer, write_addr, num_byte_to_write);
-				}
-			}
-			else
-			{
-				num_byte_to_write -= count;
-				num_of_page	  = num_byte_to_write / PAGE_SIZE;
-				num_of_single = num_byte_to_write % PAGE_SIZE;
-
-				page_write(pbuffer, write_addr, count);
-				write_addr += count;
-				pbuffer += count;
-
-				while (num_of_page--)
-				{
-					page_write(pbuffer, write_addr, PAGE_SIZE);
-					write_addr += PAGE_SIZE;
-					pbuffer += PAGE_SIZE;
-				}
-				if (0 != num_of_single)
-				{
-					page_write(pbuffer, write_addr, num_of_single);
-				}
-			}
-		}
+		return true;
 	}
-	static void buffer_read(std::uint8_t *pbuffer, std::uint32_t read_addr, std::uint16_t num_byte_to_read)
+	static bool read(uint8_t *data, uint32_t address, uint16_t size)
 	{
+		if (data == nullptr && size != 0U) return false;
 		// 命令+地址 和 数据 需要在同一个 CS 窗口内，因此手动控 CS
-		std::uint8_t send_buf[4] = {READ_DATA,
-									static_cast<std::uint8_t>(read_addr >> 16),
-									static_cast<std::uint8_t>(read_addr >> 8),
-									static_cast<std::uint8_t>(read_addr >> 0)};
+		const uint8_t send_buf[4] = {static_cast<uint8_t>(Command::READ_DATA),
+			static_cast<uint8_t>(address >> 16U), static_cast<uint8_t>(address >> 8U), static_cast<uint8_t>(address)};
 		spi_device::select();
-		spi_device::transmit_without_ctl_select(send_buf, 4);
-		spi_device::receive_without_ctl_select(pbuffer, num_byte_to_read);
+		spi_device::transmit_without_ctl_select(send_buf, 4, timeout);
+		spi_device::receive_without_ctl_select(data, size, timeout);
 		spi_device::deselect();
+		return true;
 	}
 };
+}
